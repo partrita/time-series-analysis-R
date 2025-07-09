@@ -12,68 +12,68 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Autoregressive Integrated Moving Average (ARIMA) Models
+# 자기회귀누적이동평균 (ARIMA) 모형
 
-The goal of this lecture is to implement Box--Jenkins methodology for nonstationary time series, by applying differences and fitting an ARMA model to the stationary differenced series. 
-You should be able to recognize when the differencing is needed based on the time series and ACF plots.
+이 강의의 목표는 차분을 적용하고 정상 차분 계열에 ARMA 모형을 적합시켜 비정상 시계열에 대한 Box-Jenkins 방법론을 구현하는 것입니다.
+시계열 및 ACF 그림을 기반으로 차분이 필요한 시점을 인식할 수 있어야 합니다.
 
-**Objectives**
+**학습 목표**
 
-1. List the steps of Box--Jenkins methodology.
-1. Identify the order of differences $d$ and order of seasonal differences $D$ from the plots of original and differenced time series.
-1. Recall how the orders $p$ and $q$ are identified using ACF and PACF plots for non-seasonal time series.
-1. Identify the orders $P$ and $Q$ for seasonal time series.
+1. Box-Jenkins 방법론의 단계를 나열합니다.
+1. 원본 및 차분된 시계열의 그림에서 차분 차수 $d$와 계절 차분 차수 $D$를 식별합니다.
+1. 비계절 시계열에 대해 ACF 및 PACF 그림을 사용하여 차수 $p$와 $q$를 식별하는 방법을 상기합니다.
+1. 계절 시계열에 대한 차수 $P$와 $Q$를 식별합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapters 6.1--6.5 in @Brockwell:Davis:2002
+* @Brockwell:Davis:2002의 6.1-6.5장
 
 
-## Introduction to ARIMA
+## ARIMA 소개
 
-We have already discussed the class of ARMA models for representing stationary series. 
-A generalization of this class, which incorporates a wide range of nonstationary series, is provided by the *autoregressive integrated moving average* (ARIMA) processes, i.e., processes which, after differencing finitely many times, reduce to ARMA processes.
+이미 정상 계열을 나타내는 ARMA 모형 클래스에 대해 논의했습니다.
+이 클래스의 일반화는 광범위한 비정상 계열을 포함하며, *자기회귀누적이동평균*(ARIMA) 프로세스, 즉 유한 횟수만큼 차분한 후 ARMA 프로세스로 축소되는 프로세스에 의해 제공됩니다.
 
-If $d$ is a nonnegative integer, then $X_t$ is an ARIMA($p, d, q$) process if $Y_t=(1 - B)^d X_t$ is a causal ARMA($p, q$) process. 
-The process is stationary if $d = 0$, in which case it reduces to an ARMA($p, q$) process.
+$d$가 음이 아닌 정수이면 $Y_t=(1 - B)^d X_t$가 인과적 ARMA($p, q$) 프로세스인 경우 $X_t$는 ARIMA($p, d, q$) 프로세스입니다.
+$d = 0$이면 프로세스는 정상이며, 이 경우 ARMA($p, q$) 프로세스로 축소됩니다.
 
-For example $X_t$ is an ARIMA(1,1,0) process, then $Y_t$ representing the series of its first-order differences (because $d = 1$) is an ARMA(1,0) process
+예를 들어 $X_t$가 ARIMA(1,1,0) 프로세스이면 1차 차분 계열을 나타내는 $Y_t$($d = 1$이므로)는 ARMA(1,0) 프로세스입니다.
 $$
 Y_t = (1 - B)X_t = \phi_1 Y_{t-1} + Z_t,
 $$
-where $|\phi_1| < 1$ and $Z_t$ is white noise.
+여기서 $|\phi_1| < 1$이고 $Z_t$는 백색 잡음입니다.
 
-An equation for ARIMA($p, d, q$) is
+ARIMA($p, d, q$)에 대한 방정식은 다음과 같습니다.
 $$
 (1 - B)^d (1 - \phi_1B - \dots - \phi_pB^p)X_t = 
 (1 + \theta_1B + \dots + \theta_qB^q)Z_t,
 $$ {#eq-arima}
-where $B$ is the backshift operator, $d$ is the order of differences, $\phi_1, \dots, \phi_p$ are autoregression coefficients, $p$ is the autoregressive order, $\theta_1, \dots, \theta_q$ are moving average coefficients, $q$ is the moving average order, and $Z_t\sim \mathrm{WN}(0,\sigma^2)$. 
-The left part of @eq-arima consists of the differences and the AR part; the right part represents the MA part.
+여기서 $B$는 후방 이동 연산자, $d$는 차분 차수, $\phi_1, \dots, \phi_p$는 자기회귀 계수, $p$는 자기회귀 차수, $\theta_1, \dots, \theta_q$는 이동 평균 계수, $q$는 이동 평균 차수, $Z_t\sim \mathrm{WN}(0,\sigma^2)$입니다.
+@eq-arima의 왼쪽 부분은 차분과 AR 부분으로 구성되고, 오른쪽 부분은 MA 부분을 나타냅니다.
 
 ::: {.callout-note}
-Modifications of @eq-arima exists, such as those having both the AR and MA parts on the right side. 
-This affects the signs of estimated coefficients $\phi_1, \dots, \phi_p$ and possibly $\theta_1, \dots, \theta_q$. 
-Check the help files of the software to know the exact form of the model it is estimating.
+@eq-arima의 수정 사항이 존재하며, 예를 들어 오른쪽 측면에 AR과 MA 부분이 모두 있는 경우가 있습니다.
+이는 추정된 계수 $\phi_1, \dots, \phi_p$와 잠재적으로 $\theta_1, \dots, \theta_q$의 부호에 영향을 미칩니다.
+소프트웨어의 도움말 파일을 확인하여 추정하는 모형의 정확한 형태를 확인하십시오.
 :::
 
-**Why the process is called 'integrated'?**
+**프로세스를 '누적'이라고 부르는 이유는 무엇입니까?**
 
-Recall the geometric interpretation of the integral of a curve $y = f(x)$ defined on continuous $x$. 
-The integral of $y$ corresponds to the area under the curve. 
-For example, if $y = f(x)$ is a function describing income $y$ based on working time $x$, the integral corresponds to the total income in a certain period.
+연속적인 $x$에 대해 정의된 곡선 $y = f(x)$의 적분에 대한 기하학적 해석을 상기하십시오.
+$y$의 적분은 곡선 아래 영역에 해당합니다.
+예를 들어, $y = f(x)$가 노동 시간 $x$를 기준으로 소득 $y$를 설명하는 함수이면 적분은 특정 기간의 총 소득에 해당합니다.
 
-In our lectures, we deal with time series defined using discrete times $t$ (for example, years), so yearly income is $Y_t$, and the total income over several years can be obtained by summing the individual annual incomes, $\sum Y_t$. 
-Hence, here we integrate by summation.
+강의에서는 이산 시간 $t$(예: 연도)를 사용하여 정의된 시계열을 다루므로 연간 소득은 $Y_t$이고 여러 해 동안의 총 소득은 개별 연간 소득 $\sum Y_t$를 합하여 얻을 수 있습니다.
+따라서 여기서는 합계를 통해 적분합니다.
 
-Recall the definition of random walk series, which is a cumulative sum of i.i.d. noise:
+랜덤 워크 계열의 정의를 상기하십시오. 이는 i.i.d. 잡음의 누적 합입니다.
 $$
 X_t = \sum_{i=1}^t Y_i,
 $$
-where $Y_t \sim$ i.i.d.($0,\sigma^2$).
-This $X_t$ is the simplest example of integrated series. 
-The notation $X_t \sim$ I(1) means $X_t$ is a first-order integrated series. 
-The differences of $X_t$
+여기서 $Y_t \sim$ i.i.d.($0,\sigma^2$)입니다.
+이 $X_t$는 누적 계열의 가장 간단한 예입니다.
+표기법 $X_t \sim$ I(1)은 $X_t$가 1차 누적 계열임을 의미합니다.
+$X_t$의 차분
 $$
 \begin{align}
 (1 - B)X_t &= X_t - BX_t \\
@@ -81,72 +81,72 @@ $$
 &= Y_t
 \end{align}
 $$
-give us back the uncorrelated series $Y_t$, hence the process $X_t$ is an ARIMA(0,1,0) process.
+는 비상관 계열 $Y_t$를 다시 제공하므로 프로세스 $X_t$는 ARIMA(0,1,0) 프로세스입니다.
 
 ::: {.callout-note}
-ARIMA($p, d, q$) processes with $d \geqslant 1$ are also called *difference-stationary* processes or processes with a *stochastic trend*.
-I.e., difference-stationary means the process is not stationary but can be made stationary by proper differencing.
+$d \geqslant 1$인 ARIMA($p, d, q$) 프로세스를 *차분-정상* 프로세스 또는 *확률적 추세*를 갖는 프로세스라고도 합니다.
+즉, 차분-정상이란 프로세스가 정상이 아니지만 적절한 차분을 통해 정상으로 만들 수 있음을 의미합니다.
 :::
 
 
-## Box--Jenkins methodology
+## Box-Jenkins 방법론
 
-The approach developed by @Box:Jenkins:1976 applies the differencing to the original time series repeatedly, until a stationary time series is obtained. 
-We will first learn how to identify the number of differences (i.e., the order of differences $d$) by analyzing plots of the time series and ACF at each iteration of the method. 
-In the later lecture on detecting trends in time series, we will also introduce formal tests for the integration order.
+@Box:Jenkins:1976이 개발한 접근 방식은 정상 시계열이 얻어질 때까지 원본 시계열에 반복적으로 차분을 적용합니다.
+먼저 방법의 각 반복에서 시계열 및 ACF 그림을 분석하여 차분 수(즉, 차분 차수 $d$)를 식별하는 방법을 배웁니다.
+나중에 시계열의 추세 감지에 대한 강의에서는 누적 차수에 대한 공식적인 검정도 소개합니다.
 
-Below is a general algorithm used to fit ARIMA($p, d, q$) models
+다음은 ARIMA($p, d, q$) 모형을 적합시키는 데 사용되는 일반적인 알고리즘입니다.
 
-1. Start assuming $d = 0$.
-1. Plot the time series and ACF.
-1. If the plots suggest nonstationarity, iterate differencing and plotting to update $d$:
-    * Apply differences of the current time series, write $d = d + 1$
-    * Plot the time series and ACF
-    * If nonstationarity is still obvious, repeat the differencing and plotting
-1. Identify the orders $p$ and $q$ from the plots of ACF and PACF of the latest (differenced) time series.
-1. Estimate the model.
-1. Apply model diagnostics, particularly for homogeneity, uncorrelatedness, and normality of residuals. 
-Address the violations by respecifying the model.
-1. Forecast with the resultant model.
+1. $d = 0$을 가정하고 시작합니다.
+1. 시계열과 ACF를 그립니다.
+1. 그림이 비정상성을 시사하면 차분과 그림 그리기를 반복하여 $d$를 업데이트합니다.
+    * 현재 시계열에 차분을 적용하고 $d = d + 1$로 씁니다.
+    * 시계열과 ACF를 그립니다.
+    * 비정상성이 여전히 명백하면 차분과 그림 그리기를 반복합니다.
+1. 최신(차분된) 시계열의 ACF 및 PACF 그림에서 차수 $p$와 $q$를 식별합니다.
+1. 모형을 추정합니다.
+1. 특히 잔차의 동질성, 비상관성 및 정규성에 대해 모형 진단을 적용합니다.
+모형을 다시 지정하여 위반 사항을 해결합니다.
+1. 결과 모형으로 예측합니다.
 
-Using the Box--Jenkins methodology, the linear predictor approximately follows a normal distribution, i.e.,
+Box-Jenkins 방법론을 사용하면 선형 예측기는 근사적으로 정규 분포를 따릅니다. 즉,
 $$
 \hat{X}_{n+h} \sim N\left( X_{n+h}, \mathrm{var}(\hat{X}_{n+h}) \right).
 $$
 
-Therefore, a $(100 - \alpha)$\% prediction interval is
+따라서 $(100 - \alpha)$% 예측 구간은 다음과 같습니다.
 $$
 \hat{X}_{n+h} \pm z_{1-\alpha/2} \sqrt{\mathrm{var}(\hat{X}_{n+h})}.
 $$
 
 ::: {.callout-note icon=false}
 
-## Example: ARIMA for Lake Baikal
+## 예시: 바이칼 호수에 대한 ARIMA
 
-Here we find an ARIMA model for the Lake Baikal thaw (breakup) dates from the Global Lake and River Ice Phenology Database [@Benson:etal:2020].
+여기서는 전 세계 호수 및 강 얼음 현상 데이터베이스[@Benson:etal:2020]에서 바이칼 호수 해빙(해빙) 날짜에 대한 ARIMA 모형을 찾습니다.
 
 ```{r}
-# Calculate calendar day from ice break-up date
+# 얼음 해빙 날짜에서 달력 날짜 계산
 B <- read.csv("data/baikal.csv", skip = 1) %>%
     mutate(Date_iceoff = as.Date(paste(iceoff_year, iceoff_month, iceoff_day,
                                        sep = "-"))) %>%
     mutate(DoY_iceoff = as.numeric(format(Date_iceoff, "%j")))
 
-# Convert to ts format
+# ts 형식으로 변환
 iceoff <- ts(B$DoY_iceoff, start = B$iceoff_year[1])
 ```
 
-@fig-BaikalARIMA shows that there is possibly a decreasing trend (ice melts earlier in the year), although the ACF declines fast.
+@fig-BaikalARIMA는 ACF가 빠르게 감쇠하지만 감소하는 추세(얼음이 연중 더 일찍 녹음)가 있을 수 있음을 보여줍니다.
 
 ```{r}
 #| label: fig-BaikalARIMA
-#| fig-cap: "Plots for the original time series of ice breakup days."
+#| fig-cap: "얼음 해빙일의 원본 시계열에 대한 그림."
 #| fig-height: 7
 
 X <- iceoff
 p1 <- forecast::autoplot(X) +
-    xlab("Year") +
-    ylab("Ice breakup day")
+    xlab("연도") +
+    ylab("얼음 해빙일")
 p2 <- forecast::ggAcf(X) +
     ggtitle("")
 p3 <- forecast::ggAcf(X, type = "partial") +
@@ -155,19 +155,19 @@ p1 / (p2 + p3) +
     plot_annotation(tag_levels = 'A')
 ```
 
-To remove this potential trend, we apply differencing once (more specifically, consecutive differencing, $X_t - X_{t-1}$) and produce the plots again. 
-From @fig-BaikalARIMAd1, there is no tendency in the differenced series, and the ACF declines fast, so we achieved stationarity and no need to difference the data more. 
-Overall, we differenced the time series once to achieve stationarity, so the order of differences $d = 1$.
+이 잠재적인 추세를 제거하기 위해 한 번 차분(더 구체적으로는 연속 차분, $X_t - X_{t-1}$)을 적용하고 그림을 다시 생성합니다.
+@fig-BaikalARIMAd1에서 차분된 계열에는 경향이 없고 ACF가 빠르게 감쇠하므로 정상성을 달성했으며 데이터를 더 이상 차분할 필요가 없습니다.
+전반적으로 정상성을 달성하기 위해 시계열을 한 번 차분했으므로 차분 차수 $d = 1$입니다.
 
 ```{r}
 #| label: fig-BaikalARIMAd1
-#| fig-cap: "Plots for the differenced time series of ice breakup days."
+#| fig-cap: "얼음 해빙일의 차분된 시계열에 대한 그림."
 #| fig-height: 7
 
 X <- diff(iceoff)
 p1 <- ggplot2::autoplot(X) +
-    xlab("Year") +
-    ylab("diff(Ice breakup day)")
+    xlab("연도") +
+    ylab("diff(얼음 해빙일)")
 p2 <- forecast::ggAcf(X) +
     ggtitle("")
 p3 <- forecast::ggAcf(X, type = "partial") +
@@ -176,21 +176,21 @@ p1 / (p2 + p3) +
     plot_annotation(tag_levels = 'A')
 ```
 
-Continue working with @fig-BaikalARIMAd1 to identify the orders $p$ and $q$. 
-If we treat the behavior of ACF as exhibiting a cut-off, and PACF having an exponential decay, an MA($q$) model might be plausible (i.e., $p = 0$). 
-Since the ACF cuts off after lag 1, $q = 1$ in this case. 
+차수 $p$와 $q$를 식별하기 위해 @fig-BaikalARIMAd1로 계속 작업합니다.
+ACF의 동작을 절단으로 처리하고 PACF가 지수적 감쇠를 갖는 경우 MA($q$) 모형이 타당할 수 있습니다(즉, $p = 0$).
+ACF가 시차 1 이후에 절단되므로 이 경우 $q = 1$입니다.
 
-Hence, we specified the model for ice breakup dates to be ARIMA(0,1,1), which can be written as 
+따라서 얼음 해빙 날짜에 대한 모형을 ARIMA(0,1,1)로 지정했으며, 이는 다음과 같이 쓸 수 있습니다.
 $$
 (1 - B) Y_t = (1 + \theta_1B)Z_t
 $$
-or
+또는
 $$
 Y_t = Y_{t-1} + \theta_1 Z_{t-1} + Z_t,
 $$
-where $Y_t$ represents the ice breakup dates in the year $t$, $\theta_1$ is the moving average coefficient, and $Z_t\sim \mathrm{WN}(0,\sigma^2)$.
+여기서 $Y_t$는 연도 $t$의 얼음 해빙 날짜를 나타내고, $\theta_1$은 이동 평균 계수이며, $Z_t\sim \mathrm{WN}(0,\sigma^2)$입니다.
 
-We can now estimate the model, for example, using `stats::arima()`.
+이제 예를 들어 `stats::arima()`를 사용하여 모형을 추정할 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -199,7 +199,7 @@ mod_baikal <- stats::arima(iceoff, order = c(0, 1, 1))
 mod_baikal
 ```
 
-We can also check the orders selected automatically: 
+자동으로 선택된 차수도 확인할 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -207,140 +207,140 @@ We can also check the orders selected automatically:
 forecast::auto.arima(iceoff)
 ```
 
-In the next step, we apply diagnostic checks for the residuals, for example, using plots (@fig-BaikalARIMAres). 
-Remember that the residuals should resemble white noise.
+다음 단계에서는 예를 들어 그림을 사용하여 잔차에 대한 진단 검사를 적용합니다(@fig-BaikalARIMAres).
+잔차는 백색 잡음과 유사해야 함을 기억하십시오.
 
 ```{r}
 #| label: fig-BaikalARIMAres
-#| fig-cap: "Residual diagnostics for the ARIMA(0,1,1) model for ice breakup dates."
+#| fig-cap: "얼음 해빙 날짜에 대한 ARIMA(0,1,1) 모형의 잔차 진단."
 #| fig-height: 7
 
 e <- mod_baikal$residuals
 p1 <- ggplot2::autoplot(e) + 
-    ylab("Residuals")
+    ylab("잔차")
 p2 <- forecast::ggAcf(e) +
     ggtitle("")
 p3 <- ggpubr::ggqqplot(e) + 
-    xlab("Standard normal quantiles")
+    xlab("표준 정규 분위수")
 p1 / (p2 + p3) +
     plot_annotation(tag_levels = 'A')
 ```
 
-Given that the diagnostics plots show satisfactory behavior of the residuals (@fig-BaikalARIMAres), continue with forecasting using this model (@fig-BaikalARIMAfcst). 
-Note that ARIMA(0,1,1) is mathematically equivalent to simple exponential smoothing, hence the forecast is a horizontal line.
+진단 그림이 잔차의 만족스러운 동작을 보여주므로(@fig-BaikalARIMAres) 이 모형을 사용하여 예측을 계속합니다(@fig-BaikalARIMAfcst).
+ARIMA(0,1,1)은 수학적으로 단순 지수 평활과 동일하므로 예측은 수평선입니다.
 
 ```{r}
 #| label: fig-BaikalARIMAfcst
-#| fig-cap: "ARIMA(0,1,1) model predictions of ice breakup dates 10 years ahead."
+#| fig-cap: "ARIMA(0,1,1) 모형의 10년 후 얼음 해빙 날짜 예측."
 
 ggplot2::autoplot(forecast::forecast(mod_baikal, h = 10)) + 
-    xlab("Year") +
-    ylab("Ice breakup day") +
+    xlab("연도") +
+    ylab("얼음 해빙일") +
     ggtitle("")
 ```
 :::
 
 
-## Seasonal ARIMA (SARIMA)
+## 계절 ARIMA (SARIMA)
 
-Recall that time series with seasonal variability or another strictly periodic component (e.g., daily cycles) can be deseasonalized by applying differencing that is not of consecutive values but with a lag equal to the period of the cyclical variability. 
-We will use such differences to remove *strong* periodicity, as an additional step in the Box--Jenkins algorithm.
+계절 변동성 또는 다른 엄격한 주기적 구성 요소(예: 일주기)가 있는 시계열은 연속 값이 아닌 주기적 변동성의 주기와 동일한 시차로 차분을 적용하여 계절성을 제거할 수 있음을 상기하십시오.
+Box-Jenkins 알고리즘의 추가 단계로 *강한* 주기성을 제거하기 위해 이러한 차분을 사용할 것입니다.
 
-Similar to the regular differences, we will apply seasonal differences not to eliminate autocorrelations at the corresponding lags, but to achieve fast decay of ACF at seasonal lags. 
-Even after the seasonal differences, there might be significant spikes at the seasonal lags in ACF and PACF, which can be addressed by selecting proper seasonal autoregressive and moving average orders. 
-Therefore, we can define orders of integration, AR, and MA for the seasonal part of the time series in the same way we define these orders for the non-seasonal part.
+정규 차분과 유사하게 해당 시차에서의 자기 상관을 제거하기 위해서가 아니라 계절 시차에서의 ACF의 빠른 감쇠를 달성하기 위해 계절 차분을 적용합니다.
+계절 차분 후에도 ACF 및 PACF의 계절 시차에서 유의한 스파이크가 있을 수 있으며, 이는 적절한 계절 자기회귀 및 이동 평균 차수를 선택하여 해결할 수 있습니다.
+따라서 비계절 부분에 대해 이러한 차수를 정의하는 것과 동일한 방식으로 시계열의 계절 부분에 대한 누적, AR 및 MA 차수를 정의할 수 있습니다.
 
-Based on the definitions in @Brockwell:Davis:2002, $X_t$ is a *seasonal autoregressive integrated moving average*, SARIMA($p,d,q$)($P,D,Q$)$_s$ process if the differenced series $Y_t=(1 - B)^d (1 - B^s)^D X_t$ is a causal ARMA process. 
-Here $d$ and $D$ are nonnegative integers, and $s$ is the period.
+@Brockwell:Davis:2002의 정의에 따르면 차분된 계열 $Y_t=(1 - B)^d (1 - B^s)^D X_t$가 인과적 ARMA 프로세스인 경우 $X_t$는 *계절 자기회귀누적이동평균*, SARIMA($p,d,q$)($P,D,Q$)$_s$ 프로세스입니다.
+여기서 $d$와 $D$는 음이 아닌 정수이고 $s$는 주기입니다.
 
 ::: {.callout-note}
-In practice, $D \leqslant 1$ and $P, Q \leqslant 3$.
+실제로 $D \leqslant 1$이고 $P, Q \leqslant 3$입니다.
 :::
 
-An equation for SARIMA($p, d, q$)($P, D, Q$)$_s$ is
+SARIMA($p, d, q$)($P, D, Q$)$_s$에 대한 방정식은 다음과 같습니다.
 $$
 \begin{split}
 (1 - B)^d (1 - \phi_1B - \dots - \phi_pB^p) (1 - B^s)^D (1 - \Phi_1B^s - \dots - \Phi_PB^{sP}) X_t \\
 = (1 + \theta_1B + \dots + \theta_qB^q) (1 + \Theta_1B^s + \dots + \Theta_QB^{sQ})Z_t,
 \end{split}
 $$ {#eq-sarima}
-where $D$ is the order of seasonal differences, $\Phi_1, \dots, \Phi_P$ are the seasonal autoregression coefficients, $P$ is the seasonal autoregressive order, $\Theta_1, \dots, \Theta_q$ are seasonal moving average coefficients, $Q$ is the seasonal moving average order, and the rest of the terms are the same as in @eq-arima.
+여기서 $D$는 계절 차분 차수, $\Phi_1, \dots, \Phi_P$는 계절 자기회귀 계수, $P$는 계절 자기회귀 차수, $\Theta_1, \dots, \Theta_q$는 계절 이동 평균 계수, $Q$는 계절 이동 평균 차수이며, 나머지 항은 @eq-arima와 동일합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: SARIMA for the number of airline passengers
+## 예시: 항공 승객 수에 대한 SARIMA
 
-Here we revisit the time series on airline passengers from which we have removed the trend by taking regular non-seasonal differences once ($d = 1$). 
-Notice from @fig-AirDiff C and D how after taking the usual differences the upward trend disappeared, and ACF started to decay much faster. 
-At the seasonal lags, however, the ACF decays still linearly (@fig-AirDiff D), which suggested differencing at the seasonal lag to remove strong periodicity. 
-After taking seasonal differences once ($D = 1$), the time series looks stationary (@fig-AirDiff E), and the ACF decays fast at both seasonal and non-seasonal lags. 
-This is enough differencing.
+여기서는 한 번의 정규 비계절 차분($d = 1$)을 취하여 추세를 제거한 항공 승객 시계열을 다시 살펴봅니다.
+@fig-AirDiff C와 D에서 일반적인 차분을 취한 후 상승 추세가 사라지고 ACF가 훨씬 빠르게 감쇠하기 시작하는 방법을 주목하십시오.
+그러나 계절 시차에서 ACF는 여전히 선형적으로 감쇠하며(@fig-AirDiff D), 이는 강한 주기성을 제거하기 위해 계절 시차에서 차분을 제안했습니다.
+한 번의 계절 차분($D = 1$)을 취한 후 시계열은 정상으로 보이고(@fig-AirDiff E) ACF는 계절 및 비계절 시차 모두에서 빠르게 감쇠합니다.
+이것으로 충분한 차분입니다.
 
 ```{r}
 #| label: fig-AirDiff
-#| fig-cap: "Time series plot of the airline passenger series with an estimated ACF and the detrended (differenced) series with their ACFs."
+#| fig-cap: "추정된 ACF가 있는 항공 승객 계열의 시계열 그림과 ACF가 있는 추세 제거(차분)된 계열."
 #| fig-height: 9
 
 Yt <- log10(AirPassengers)
 
-# Apply first-order (non-seasonal) differences
+# 1차(비계절) 차분 적용
 D1 <- diff(Yt)
 
-# Additionally, apply first-order seasonal differences
+# 추가적으로 1차 계절 차분 적용
 D1D12 <- diff(D1, lag = 12)
 
 p1 <- ggplot2::autoplot(Yt) + 
-    xlab("Year") + 
-    ylab("lg(Air passangers)") + 
+    xlab("연도") +
+    ylab("lg(항공 승객)") +
     ggtitle("Yt")
 p2 <- forecast::ggAcf(Yt) + 
     ggtitle("Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p3 <- ggplot2::autoplot(D1) + 
-    xlab("Year") + 
-    ylab("lg(Air passangers)") + 
+    xlab("연도") +
+    ylab("lg(항공 승객)") +
     ggtitle("(1-B)Yt")
 p4 <- forecast::ggAcf(D1) + 
     ggtitle("(1-B)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p5 <- ggplot2::autoplot(D1D12) + 
-    xlab("Year") + 
-    ylab("lg(Air passangers)") + 
+    xlab("연도") +
+    ylab("lg(항공 승객)") +
     ggtitle("(1-B)(1-B12)Yt")
 p6 <- forecast::ggAcf(D1D12) + 
     ggtitle("(1-B)(1-B12)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) / (p5 + p6) +
     plot_annotation(tag_levels = 'A')
 ```
 
-For the next step, see @fig-AirDiffACF to identify the orders $p$ and $q$. 
-For that, look only at the non-seasonal lags, 1--11. 
-Both ACF and PACF have significant values at lags 1 and 3, which could correspond to AR(3), MA(3), ARMA(1,1), or ARMA with higher orders. 
-From these options ARMA(1,1) has fewer parameters, hence we prefer this model, with $p = 1$ and $q = 1$, as the most parsimonious option. 
-(However, given that the correlations at lag 2 are not statistically significant, information criteria may penalize adding extra arguments and might prefer a more compact specification, AR(1) or MA(1).)
+다음 단계에서는 @fig-AirDiffACF를 참조하여 차수 $p$와 $q$를 식별합니다.
+이를 위해 비계절 시차 1-11만 살펴봅니다.
+ACF와 PACF 모두 시차 1과 3에서 유의한 값을 가지며, 이는 AR(3), MA(3), ARMA(1,1) 또는 더 높은 차수의 ARMA에 해당할 수 있습니다.
+이러한 옵션 중에서 ARMA(1,1)는 매개변수가 가장 적으므로 가장 간결한 옵션으로 이 모형을 선호하며, $p = 1$이고 $q = 1$입니다.
+(그러나 시차 2에서의 상관 관계가 통계적으로 유의하지 않다는 점을 감안할 때 정보 기준은 추가 인수 추가에 불이익을 줄 수 있으며 더 간결한 사양인 AR(1) 또는 MA(1)를 선호할 수 있습니다.)
 
-Next, use @fig-AirDiffACF again to identify orders $P$ and $Q$. 
-Now look only at the seasonal lags 12, 24, 36, etc. 
-Both the ACF and PACF have significant values only on the first of those lags (lag 12), which could correspond to AR(1), MA(1), or ARMA(1,1) for the seasonal component. 
-From these options, AR(1) and MA(1) are the most parsimonious so we should select one of them or use some numeric criterion to select the best model (e.g., information criterion like AIC or forecasting accuracy on a testing set).
+다음으로 @fig-AirDiffACF를 다시 사용하여 차수 $P$와 $Q$를 식별합니다.
+이제 계절 시차 12, 24, 36 등만 살펴봅니다.
+ACF와 PACF 모두 해당 시차 중 첫 번째 시차(시차 12)에서만 유의한 값을 가지며, 이는 계절 구성 요소에 대해 AR(1), MA(1) 또는 ARMA(1,1)에 해당할 수 있습니다.
+이러한 옵션 중에서 AR(1)과 MA(1)가 가장 간결하므로 그중 하나를 선택하거나 일부 수치 기준(예: AIC와 같은 정보 기준 또는 테스트 세트에서의 예측 정확도)을 사용하여 최상의 모형을 선택해야 합니다.
 
 ```{r}
 #| label: fig-AirDiffACF
-#| fig-cap: "ACF and PACF of the differenced airline passenger time series $(1-B)(1-B^{12})Y_t$."
+#| fig-cap: "차분된 항공 승객 시계열 $(1-B)(1-B^{12})Y_t$의 ACF 및 PACF."
 
 p6 <- forecast::ggAcf(D1D12, lag.max = 36) + 
     ggtitle("(1-B)(1-B12)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p7 <- forecast::ggAcf(D1D12, lag.max = 36, type = "partial") + 
     ggtitle("(1-B)(1-B12)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p6 + p7 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Overall, our analysis suggested that SARIMA(1,1,1)(1,1,0) or SARIMA(1,1,1)(0,1,1) is a plausible model for this time series.
-For example, estimate SARIMA(1,1,1)(0,1,1):
+전반적으로 분석 결과 SARIMA(1,1,1)(1,1,0) 또는 SARIMA(1,1,1)(0,1,1)이 이 시계열에 대한 타당한 모형임을 시사했습니다.
+예를 들어 SARIMA(1,1,1)(0,1,1)을 추정합니다.
 
 ```{r}
 #| code-fold: false
@@ -351,44 +351,44 @@ mod_air <- stats::arima(Yt, order = c(1, 1, 1),
 mod_air
 ```
 
-SARIMA(1,1,1)(0,1,1)$_{12}$ model can be written down as
+SARIMA(1,1,1)(0,1,1)$_{12}$ 모형은 다음과 같이 쓸 수 있습니다.
 $$
 \begin{split}
 (1 - B) (1 - \phi_1B) (1 - B^{12}) X_t \\
 = (1 + \theta_1B) (1 + \Theta_1B^{12})Z_t.
 \end{split}
 $$
-We can apply the backshift operations are rewrite the model without the backshift operator as follows:
+후방 이동 연산을 적용하고 후방 이동 연산자 없이 모형을 다음과 같이 다시 쓸 수 있습니다.
 $$
 \begin{split}
 (1 - B - \phi_1B + \phi_1B^2) (1 - B^{12}) X_t \\
 = (1 + \theta_1B + \Theta_1B^{12} + \theta_1\Theta_1B^{13})Z_t,
 \end{split}
 $$
-then
+그런 다음
 $$
 \begin{split}
 (1 - B - \phi_1B + \phi_1B^2 - B^{12} + B^{13} + \phi_1B^{13} - \phi_1B^{14}) X_t \\
 = (1 + \theta_1B + \Theta_1B^{12} + \theta_1\Theta_1B^{13})Z_t,
 \end{split}
 $$
-then
+그런 다음
 $$
 \begin{split}
 X_t - X_{t-1} - \phi_1X_{t-1} + \phi_1X_{t-2} - X_{t-12} + X_{t-13} + \phi_1X_{t-13} - \phi_1X_{t-14} \\
 = Z_t + \theta_1Z_{t-1} + \Theta_1Z_{t-12} + \theta_1\Theta_1Z_{t-13},
 \end{split}
 $$
-then
+그런 다음
 $$
 \begin{split}
 X_t = X_{t-1} + \phi_1X_{t-1} - \phi_1X_{t-2} + X_{t-12} - X_{t-13} - \phi_1X_{t-13} + \phi_1X_{t-14} \\
 + \theta_1Z_{t-1} + \Theta_1Z_{t-12} + \theta_1\Theta_1Z_{t-13} + Z_t,
 \end{split}
 $$
-where $X_t = \lg(AirPassengers)$ and $Z_t\sim \mathrm{WN}(0,\sigma^2)$.
+여기서 $X_t = \lg(AirPassengers)$이고 $Z_t\sim \mathrm{WN}(0,\sigma^2)$입니다.
 
-Below are results based on the automatic selection of the orders:
+다음은 차수의 자동 선택을 기반으로 한 결과입니다.
 
 ```{r}
 #| code-fold: false
@@ -396,70 +396,70 @@ Below are results based on the automatic selection of the orders:
 forecast::auto.arima(Yt)
 ```
 
-The orders selected automatically based on AIC suggest that indeed the non-significance of correlations at lag 2 and relatively low correlations at lag 3 made it not worthy to estimate additional parameters in the non-seasonal part, for which MA(1) specification was selected, not the suggested ARMA(1,1), AR(3), or MA(3).
+AIC를 기반으로 자동으로 선택된 차수는 실제로 시차 2에서의 상관 관계의 비유의성과 시차 3에서의 상대적으로 낮은 상관 관계로 인해 비계절 부분에 추가 매개변수를 추정할 가치가 없음을 시사하며, 이에 대해 제안된 ARMA(1,1), AR(3) 또는 MA(3)가 아닌 MA(1) 사양이 선택되었습니다.
 
-In the next step, we apply diagnostic checks for the residuals, for example, using plots (@fig-AirARIMAres).
+다음 단계에서는 예를 들어 그림을 사용하여 잔차에 대한 진단 검사를 적용합니다(@fig-AirARIMAres).
 
 ```{r}
 #| label: fig-AirARIMAres
-#| fig-cap: "Residual diagnostics for the SARIMA model for the airline passenger data."
+#| fig-cap: "항공 승객 데이터에 대한 SARIMA 모형의 잔차 진단."
 #| fig-height: 7
 
 e <- mod_air$residuals
 p1 <- ggplot2::autoplot(e) + 
-    ylab("Residuals")
+    ylab("잔차")
 p2 <- forecast::ggAcf(e) +
     ggtitle("")
 p3 <- ggpubr::ggqqplot(e) + 
-    xlab("Standard normal quantiles")
+    xlab("표준 정규 분위수")
 p1 / (p2 + p3) +
     plot_annotation(tag_levels = 'A')
 ```
 
-Given that the diagnostics plots show satisfactory behavior of the residuals (@fig-AirARIMAres), continue with forecasting using this model (@fig-AirARIMAfcst).
+진단 그림이 잔차의 만족스러운 동작을 보여주므로(@fig-AirARIMAres) 이 모형을 사용하여 예측을 계속합니다(@fig-AirARIMAfcst).
 
 ```{r}
 #| label: fig-AirARIMAfcst
-#| fig-cap: "SARIMA model predictions of airline passenger data 2 years ahead."
+#| fig-cap: "SARIMA 모형의 2년 후 항공 승객 데이터 예측."
 
 ggplot2::autoplot(forecast::forecast(mod_air, h = 24)) + 
-    xlab("Year") +
-    ylab("lg(Air passangers)") +
+    xlab("연도") +
+    ylab("lg(항공 승객)") +
     ggtitle("")
 ```
 
-Compare ACF in @fig-AirARIMAres with ACF of regression residuals in @fig-airpassangersRegTrendSeas and @fig-airpassangersRegTrendFourier. 
-The residuals of those regression models are autocorrelated, while the models have more parameters than the specified SARIMA models. 
-Hence, the SARIMA model is much better for this time series.
+@fig-AirARIMAres의 ACF를 @fig-airpassangersRegTrendSeas 및 @fig-airpassangersRegTrendFourier의 회귀 잔차 ACF와 비교하십시오.
+해당 회귀 모형의 잔차는 자기 상관이 있는 반면 모형은 지정된 SARIMA 모형보다 매개변수가 더 많습니다.
+따라서 SARIMA 모형이 이 시계열에 훨씬 더 좋습니다.
 :::
 
 
-## Conclusion
+## 결론
 
-In this lecture, we discovered ARIMA as an extension of ARMA modeling to nonstationary data and SARIMA as an extension of ARIMA models to time series with periodicity (seasonality).
+이 강의에서는 비정상 데이터에 대한 ARMA 모델링의 확장인 ARIMA와 주기성(계절성)이 있는 시계열에 대한 ARIMA 모형의 확장인 SARIMA를 발견했습니다.
 
-We learned Box--Jenkins iterative procedure for identifying such models, including the orders of differences, $d$ and $D$, and $p$, $q$, $P$, and $Q$.
+차분 차수 $d$와 $D$, 그리고 $p$, $q$, $P$, $Q$를 포함하여 이러한 모형을 식별하기 위한 Box-Jenkins 반복 절차를 배웠습니다.
 
-Please remember to specify the criterion for selecting a model beforehand and consider such options as cross-validation and using a testing set.
+모형 선택 기준을 미리 지정하고 교차 검증 및 테스트 세트 사용과 같은 옵션을 고려하십시오.
 
 
-## Appendix
+## 부록
 
-**Equivalences**
+**동등성**
 
-Mathematically, some models are equivalent one to another. Below are some examples.
+수학적으로 일부 모형은 서로 동일합니다. 다음은 몇 가지 예입니다.
 
-* Forecasts of ARIMA(0,1,1) are equivalent to simple exponential smoothing.
+* ARIMA(0,1,1)의 예측은 단순 지수 평활과 동일합니다.
 
-An ARIMA(0,1,1) model can be written as 
+ARIMA(0,1,1) 모형은 다음과 같이 쓸 수 있습니다.
 $$
 Y_t = Y_{t-1} + \theta_1 Z_{t-1} + Z_t,
 $$
-from which the one-step-ahead forecast is
+여기서 1단계 앞 예측은 다음과 같습니다.
 $$
 \hat{Y}_t = Y_{t-1} + \theta_1 (Y_{t-1} - \hat{Y}_{t-1}).
 $$
-If we define $\theta_1 = \alpha - 1$, then the above equation transforms to
+$\theta_1 = \alpha - 1$로 정의하면 위 방정식은 다음과 같이 변환됩니다.
 $$
 \begin{split}
 \hat{Y}_t &= Y_{t-1} + (\alpha - 1) (Y_{t-1} - \hat{Y}_{t-1})\\
@@ -468,6 +468,6 @@ $$
 \end{split}
 $$
 
-* Forecasts of ARIMA(0,2,2) are equivalent to Holt's method.
+* ARIMA(0,2,2)의 예측은 홀트 방법과 동일합니다.
 
-* Forecasts of SARIMA(0,1,$s+1$)(0,1,0)$_s$ are equivalent to Holt--Winters additive method.
+* SARIMA(0,1,$s+1$)(0,1,0)$_s$의 예측은 홀트-윈터스 가법 방법과 동일합니다.

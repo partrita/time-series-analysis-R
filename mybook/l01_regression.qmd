@@ -12,73 +12,73 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Review of Linear Regression {#sec-regression}
+# 선형 회귀 복습 {#sec-regression}
 
-After this lecture, you should be competent (again) in assessing violations of various assumptions of linear regression models, particularly assumptions about model residuals, by being able to apply visual assessments and formal statistical tests, and interpret the results and effects of the violations.
+이 강의를 마치면 선형 회귀 모형의 다양한 가정, 특히 모형 잔차에 대한 가정 위반을 평가하는 데 (다시 한번) 능숙해질 것입니다. 시각적 평가와 공식적인 통계 검정을 적용하고, 위반의 결과와 영향을 해석할 수 있게 됩니다.
 
-**Objectives**
+**학습 목표**
 
-1. Recall the form and standard assumptions of linear regression models.
-1. Recall and apply standard methods of assessing and testing homogeneity of variance and normality of residuals.
-1. Define and test independence (most often, uncorrelatedness) of regression model residuals.
+1. 선형 회귀 모형의 형태와 표준 가정을 기억합니다.
+1. 분산의 동질성 및 잔차의 정규성을 평가하고 검정하는 표준 방법을 기억하고 적용합니다.
+1. 회귀 모형 잔차의 독립성(대부분 비상관성)을 정의하고 검정합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapters 3--4 in @Chatterjee:Hadi:2006
+* @Chatterjee:Hadi:2006의 3-4장
 
 
-## Diagnostics for the simple linear regression: residual analysis
+## 단순 선형 회귀 진단: 잔차 분석
 
-Given a simple linear regression (SLR) model
+단순 선형 회귀(SLR) 모형이 주어졌을 때
 $$
 Y_{t} = \beta_{0} + \beta_{1} X_{t} + \epsilon_{t},
 $$
-where $Y_{t}$ is the dependent variable and $X_{t}$ is the regressor (independent, predictor) variable, $t = 1,\dots,n$, and $n$ is the sample size.
+여기서 $Y_{t}$는 종속 변수이고 $X_{t}$는 회귀 변수(독립, 예측 변수)이며, $t = 1,\dots,n$이고 $n$은 표본 크기입니다.
 
 
-**The Gauss--Markov theorem** 
+**가우스-마르코프 정리**
 
-If $\epsilon_{t}$ are uncorrelated random variables with common variance, then of all possible estimators $\beta^{\ast}_{0}$ and $\beta^{\ast}_{1}$ that are linear functions of $Y_{t}$, the least squares estimators have the smallest variance.
+만약 $\epsilon_{t}$가 공통 분산을 갖는 비상관 확률 변수라면, $Y_{t}$의 선형 함수인 모든 가능한 추정량 $\beta^{\ast}_{0}$와 $\beta^{\ast}_{1}$ 중에서 최소 제곱 추정량이 가장 작은 분산을 갖습니다.
 
-Thus, the ordinary least squares (OLS) assumptions are:
+따라서 보통 최소 제곱(OLS) 가정은 다음과 같습니다.
 
-1. the residuals $\epsilon_{t}$ have common variance ($\epsilon_{t}$ are homoskedastic);
-1. the residuals $\epsilon_{t}$ are uncorrelated;
+1. 잔차 $\epsilon_{t}$는 공통 분산을 갖습니다($\epsilon_{t}$는 등분산적입니다).
+1. 잔차 $\epsilon_{t}$는 비상관입니다.
 
-    to provide prediction intervals (PIs), confidence intervals (CIs), and to test hypotheses about the parameters in our model, we also need to assume that
+    모형의 매개변수에 대한 예측 구간(PI), 신뢰 구간(CI)을 제공하고 가설을 검정하기 위해 다음 가정도 필요합니다.
 
-1. the residuals $\epsilon_{t}$ are normally distributed ($\epsilon_{t} \sim N (0, \sigma^{ 2} )$).
+1. 잔차 $\epsilon_{t}$는 정규 분포를 따릅니다($\epsilon_{t} \sim N (0, \sigma^{ 2} )$).
 
 ::: {.callout-note}
-If the residuals are independent and identically distributed and normal ($\epsilon_{t} \sim$ i.i.d. $N(0, \sigma^{2}$)), then all three above properties are automatically satisfied. 
-In this case, $\epsilon_{t}$ are not only uncorrelated but are independent. 
-To be independent is a much stronger property than to be uncorrelated.
+만약 잔차가 독립적이고 동일하게 분포하며 정규 분포를 따른다면($\epsilon_{t} \sim$ i.i.d. $N(0, \sigma^{2}$)), 위의 세 가지 속성은 자동으로 충족됩니다.
+이 경우 $\epsilon_{t}$는 비상관일 뿐만 아니라 독립적입니다.
+독립적이라는 것은 비상관이라는 것보다 훨씬 강력한 속성입니다.
 :::
 
 ::: {.callout-note}
-While a given model may still have useful predictive value even when the OLS assumptions are violated, the confidence intervals, prediction intervals, and $p$-values associated with the $t$-statistics will generally be incorrect when the OLS assumptions do not hold.
+OLS 가정이 위반된 경우에도 특정 모형이 여전히 유용한 예측 가치를 가질 수 있지만, OLS 가정이 성립하지 않으면 $t$-통계량과 관련된 신뢰 구간, 예측 구간 및 $p$-값은 일반적으로 정확하지 않습니다.
 :::
 
-A basic technique for investigating the aptness of a regression model is based on analyzing the residuals $\epsilon_{t}$. 
-In a residual analysis, we attempt to assess the validity of the OLS assumptions by examining the estimated residuals $\hat{\epsilon}_{1}, \dots, \hat{\epsilon}_{n}$ to see if they satisfy the imposed conditions. 
-If the model is apt, the observed residuals should reflect the assumptions listed above.
+회귀 모형의 적합성을 조사하는 기본 기법은 잔차 $\epsilon_{t}$를 분석하는 데 기반합니다.
+잔차 분석에서는 추정된 잔차 $\hat{\epsilon}_{1}, \dots, \hat{\epsilon}_{n}$이 부과된 조건을 만족하는지 검토하여 OLS 가정의 타당성을 평가하려고 시도합니다.
+모형이 적합하다면 관찰된 잔차는 위에 나열된 가정을 반영해야 합니다.
 
-We perform our diagnostics analysis from a step-by-step verification of each assumption. 
-We start with visual diagnostics, then proceed with formal tests. 
-A lot of useful diagnostic information may be obtained from a residual plot.
+각 가정을 단계별로 검증하여 진단 분석을 수행합니다.
+시각적 진단으로 시작하여 공식적인 검정으로 진행합니다.
+잔차 그림에서 많은 유용한 진단 정보를 얻을 수 있습니다.
 
 
-### Homoskedasticity
+### 등분산성
 
-We plot the residuals $\hat{\epsilon}_{t}$ vs. time, fitted values $\hat{Y}_{t}$, and predictor values $X_t$. 
-If the assumption of constant variance is satisfied, $\hat{\epsilon}_{t}$ fluctuate around the zero mean with more or less constant amplitude and this amplitude does not change with time, fitted values $\hat{Y}_{t}$, and predictor values $X_t$.
+잔차 $\hat{\epsilon}_{t}$를 시간, 적합값 $\hat{Y}_{t}$ 및 예측 변수 값 $X_t$에 대해 그립니다.
+일정 분산 가정이 충족되면 $\hat{\epsilon}_{t}$는 평균 0 주위에서 거의 일정한 진폭으로 변동하며 이 진폭은 시간, 적합값 $\hat{Y}_{t}$ 및 예측 변수 값 $X_t$에 따라 변하지 않습니다.
 
-If the (linear) model is not appropriate, the mean of the residuals may be non-constant, i.e., not always 0. 
-@fig-IdealResiduals shows an example of a random pattern that we would like the residuals to have (no systematic patterns).
+(선형) 모형이 적절하지 않으면 잔차의 평균이 일정하지 않을 수 있습니다. 즉, 항상 0이 아닐 수 있습니다.
+@fig-IdealResiduals는 잔차가 가져야 할 바람직한 무작위 패턴(체계적인 패턴 없음)의 예를 보여줍니다.
 
 ```{r}
 #| label: fig-IdealResiduals
-#| fig-cap: "A time series plot of 'ideal' residuals. These residuals $x_t$ are simulated i.i.d. normal."
+#| fig-cap: "'이상적인' 잔차의 시계열 그림. 이러한 잔차 $x_t$는 i.i.d. 정규 분포로 시뮬레이션되었습니다."
 
 set.seed(1)
 n = 26; m = 0; s = 522
@@ -87,29 +87,29 @@ forecast::autoplot(x) +
     geom_hline(yintercept = 0, lty = 2, col = 4)
 ```
 
-What can we notice in a residual plot?
+잔차 그림에서 무엇을 알 수 있습니까?
 
-* Change of variability with time indicates heterogeneity of variance of the residuals.
-* Obvious lack of symmetry (around 0) in the plot suggests a lack of normality or presence of outliers.
-* Systematic trends in the residuals suggest correlations between the residuals or inadequateness of the proposed model.
+* 시간에 따른 변동성 변화는 잔차 분산의 이질성을 나타냅니다.
+* 그림에서 (0을 기준으로) 명백한 대칭성 부족은 정규성 부족 또는 이상치 존재를 시사합니다.
+* 잔차의 체계적인 추세는 잔차 간의 상관 관계 또는 제안된 모형의 부적절성을 시사합니다.
 
-Sometimes it is possible to transform the dependent or independent variables to remedy these problems, i.e., to get rid of the correlated residuals or to stabilize the variance (see @sec-wls and @sec-gls).
-Otherwise, we need to change (re-specify) the model.
+때로는 이러한 문제를 해결하기 위해 종속 변수 또는 독립 변수를 변환할 수 있습니다. 즉, 상관된 잔차를 제거하거나 분산을 안정화할 수 있습니다(@sec-wls 및 @sec-gls 참조).
+그렇지 않으면 모형을 변경(재지정)해야 합니다.
 
-A useful technique that can guide us in this process is to plot $\hat{\epsilon}_{t}$ vs. $\hat{Y}_{t}$ and $\hat{\epsilon}_{t}$ vs. each predictor $X_t$. 
-Similarly to their time series plot, $\hat{\epsilon}_{t}$ should fluctuate around the zero mean with more or less constant amplitude.
+이 과정에서 우리를 안내할 수 있는 유용한 기법은 $\hat{\epsilon}_{t}$ 대 $\hat{Y}_{t}$ 및 $\hat{\epsilon}_{t}$ 대 각 예측 변수 $X_t$를 그리는 것입니다.
+시계열 그림과 유사하게 $\hat{\epsilon}_{t}$는 평균 0 주위에서 거의 일정한 진폭으로 변동해야 합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher shipments model and patterns in residuals
+## 예시: 식기세척기 출하량 모형 및 잔차 패턴
 
-@fig-DishResiduals shows the R code and residuals of a simple linear regression exploring dishwasher shipments (DISH) and private residential investments (RES) for several years.
+@fig-DishResiduals는 식기세척기 출하량(DISH)과 민간 주거 투자(RES)를 여러 해 동안 탐색하는 단순 선형 회귀의 R 코드와 잔차를 보여줍니다.
 
-How different are the patterns in @fig-DishResiduals from those in @fig-IdealResiduals?
+@fig-DishResiduals의 패턴은 @fig-IdealResiduals의 패턴과 얼마나 다릅니까?
 
 ```{r}
 #| label: fig-DishResiduals
-#| fig-cap: "Estimated residuals plotted vs. time, fitted values, and predictor."
+#| fig-cap: "추정된 잔차를 시간, 적합값 및 예측 변수에 대해 그린 그림입니다."
 #| fig-height: 3
 
 D <- read.delim("data/dish.txt") %>% 
@@ -118,111 +118,111 @@ mod1 <- lm(DISH ~ RES, data = D)
 p1 <- ggplot(D, aes(x = Year, y = mod1$residuals)) + 
     geom_line() + 
     geom_hline(yintercept = 0, lty = 2, col = 4) + 
-    ylab("Residuals")
+    ylab("잔차")
 p2 <- ggplot(D, aes(x = mod1$fitted.values, y = mod1$residuals)) + 
     geom_point() + 
     geom_hline(yintercept = 0, lty = 2, col = 4) + 
-    xlab("Fitted values") +
-    ylab("Residuals")
+    xlab("적합값") +
+    ylab("잔차")
 p3 <- ggplot(D, aes(x = RES, y = mod1$residuals)) + 
     geom_point() + 
     geom_hline(yintercept = 0, lty = 2, col = 4) + 
-    xlab("Residential investments (RES)") +
-    ylab("Residuals")
+    xlab("주거 투자 (RES)") +
+    ylab("잔차")
 p1 + p2 + p3 +
     plot_annotation(tag_levels = 'A')
 ```
 
-In @fig-DishResiduals, we see a pattern of residuals increasing in time, and a pattern of lower variability for high fitted values or high residential investments.
-Thus, the assumption of homoskedasticity is violated.
-In @fig-IdealResiduals, no such patterns are observed.
+@fig-DishResiduals에서 잔차가 시간에 따라 증가하는 패턴과 높은 적합값 또는 높은 주거 투자에 대해 변동성이 낮은 패턴을 볼 수 있습니다.
+따라서 등분산성 가정이 위반되었습니다.
+@fig-IdealResiduals에서는 이러한 패턴이 관찰되지 않습니다.
 :::
 
 
-### Uncorrelatedness
+### 비상관성
 
-It is a deep topic that we shall discuss many times in different variations in the future. 
-When observations are obtained in a time sequence (the topic of time series analysis and our course), there is a *high* possibility that the errors $\epsilon_{t}$ are correlated. 
-For instance, if the residual is positive (or negative) for a given day $t$, it is likely that the residual for the following day $t+1$ is also positive (or negative). 
-Such residuals are said to be *autocorrelated* (i.e., serially correlated). Autocorrelation of many environmental time series is positive.
+이것은 앞으로 다양한 변형으로 여러 번 논의할 심오한 주제입니다.
+관측치가 시간 순서대로 얻어지면(시계열 분석 및 우리 과정의 주제), 오차 $\epsilon_{t}$가 상관될 가능성이 *높습니다*.
+예를 들어, 특정 날짜 $t$에 잔차가 양수(또는 음수)이면 다음 날 $t+1$의 잔차도 양수(또는 음수)일 가능성이 높습니다.
+이러한 잔차는 *자기 상관*(즉, 계열 상관)이라고 합니다. 많은 환경 시계열의 자기 상관은 양수입니다.
 
-When the residuals $\epsilon_{t}$ are related over time, a model for the residuals frequently employed is the first-order autoregressive model, i.e., the AR(1) model.
+잔차 $\epsilon_{t}$가 시간에 따라 관련될 때 잔차에 대해 자주 사용되는 모형은 1차 자기 회귀 모형, 즉 AR(1) 모형입니다.
 
-The *autoregressive model of the first order*, AR(1), is defined as
+*1차 자기 회귀 모형*, AR(1)은 다음과 같이 정의됩니다.
 $$
 \epsilon_{t} = \rho \epsilon_{t - 1} + u_{t},
 $$
-where $\rho$ is the autoregression coefficient ($- 1 < \rho < 1$) and $u_{t}$ is an uncorrelated $N (0, \sigma^{2})$ time series.
+여기서 $\rho$는 자기 회귀 계수($- 1 < \rho < 1$)이고 $u_{t}$는 비상관 $N (0, \sigma^{2})$ 시계열입니다.
 
-The model assumes that the residual $\epsilon_{t}$ at the time $t$ contains a component resulting from the residual $\epsilon_{t - 1}$ at the time $t - 1$ and a random disturbance $u_{t}$ that is independent of the earlier periods.
+이 모형은 시간 $t$에서의 잔차 $\epsilon_{t}$가 시간 $t-1$에서의 잔차 $\epsilon_{t-1}$에서 비롯된 구성 요소와 이전 기간과 독립적인 무작위 교란 $u_{t}$를 포함한다고 가정합니다.
 
-**Effects of autocorrelation** 
+**자기 상관의 영향**
 
-If the OLS method is employed for the parameter estimation and the residuals $\epsilon_{t}$ are autocorrelated of the first order, then the consequences are:
+OLS 방법을 매개변수 추정에 사용하고 잔차 $\epsilon_{t}$가 1차 자기 상관을 갖는 경우 결과는 다음과 같습니다.
 
-* The OLS estimators will still be unbiased, but they no longer have the minimum variance property (see the Gauss--Markov theorem); they tend to be relatively inefficient.
-* The residual mean square error (MSE) can seriously underestimate the true variance of the error terms in the model.
-* Standard procedures for CI, PI, and tests using the $F$ and Student's $t$ distributions are no longer strictly applicable.
+* OLS 추정량은 여전히 편향되지 않지만 더 이상 최소 분산 속성을 갖지 않습니다(가우스-마르코프 정리 참조). 상대적으로 비효율적인 경향이 있습니다.
+* 잔차 평균 제곱 오차(MSE)는 모형의 오차 항의 실제 분산을 심각하게 과소평가할 수 있습니다.
+* $F$ 및 스튜던트 $t$ 분포를 사용하는 CI, PI 및 검정에 대한 표준 절차는 더 이상 엄격하게 적용할 수 없습니다.
 
-For example, see Section 5.2 in @Chatterjee:Simonoff:2013 for more details.
+예를 들어, 자세한 내용은 @Chatterjee:Simonoff:2013의 5.2절을 참조하십시오.
 
-**Durbin--Watson test**
+**더빈-왓슨 검정**
 
-A widely used test for examining whether the residuals in a regression model are correlated is the Durbin--Watson test. 
-This test is based on the AR(1) model for $\epsilon_{t}$. 
-The one-tail test alternatives are
+회귀 모형의 잔차가 상관되어 있는지 여부를 검사하는 데 널리 사용되는 검정은 더빈-왓슨 검정입니다.
+이 검정은 $\epsilon_{t}$에 대한 AR(1) 모형을 기반으로 합니다.
+단측 검정 대안은 다음과 같습니다.
 $$
 \begin{align}
-H_{0}{:} ~ \rho = 0 & ~~ vs. ~~ H_{1}{:} ~ \rho > 0,\\
-H_{0}{:} ~ \rho = 0 & ~~ vs. ~~ H_{1}{:} ~ \rho < 0,
+H_{0}{:} ~ \rho = 0 & ~~ \text{vs.} ~~ H_{1}{:} ~ \rho > 0,\\
+H_{0}{:} ~ \rho = 0 & ~~ \text{vs.} ~~ H_{1}{:} ~ \rho < 0,
 \end{align}
 $$
-and the two-tail test is
+그리고 양측 검정은 다음과 같습니다.
 $$
-H_{0}{:} ~ \rho = 0 ~~ vs. ~~ H_{1}{:} ~ \rho \neq 0.\\
+H_{0}{:} ~ \rho = 0 ~~ \text{vs.} ~~ H_{1}{:} ~ \rho \neq 0.\\
 $$
 
 ::: {.callout-note}
-When dealing with real data, positive autocorrelation is usually the case.
+실제 데이터를 다룰 때는 일반적으로 양의 자기 상관이 나타납니다.
 :::
 
-The Durbin--Watson test statistic DW is based on the differences between the adjacent residuals, $\epsilon_{t} - \epsilon_{t - 1}$, and is of the following form:
+더빈-왓슨 검정 통계량 DW는 인접한 잔차 간의 차이 $\epsilon_{t} - \epsilon_{t - 1}$를 기반으로 하며 다음 형식을 갖습니다.
 $$
 \text{DW} = \frac{\sum^{n}_{t = 2} \left( \epsilon_{t} - \epsilon_{t - 1} \right)^{2}}{\sum^{n}_{t = 1} \epsilon^{2}_{t}},
 $$
-where $\epsilon_{t}$ is the regression residual at the time $t$ and $n$ is the number of observations.
+여기서 $\epsilon_{t}$는 시간 $t$에서의 회귀 잔차이고 $n$은 관측치 수입니다.
 
-The DW statistic takes on values in the range $[0, 4]$. In fact,
+DW 통계량은 $[0, 4]$ 범위의 값을 갖습니다. 실제로,
 
-* When $\epsilon_{t}$ are positively correlated, adjacent residuals tend to be of similar magnitude so that the numerator of DW will be relatively small or 0.
-* When $\epsilon_{t}$ are negatively correlated, adjacent residuals tend to be of similar magnitude but with the opposite sign so that the numerator of DW will be relatively large or equal to 4.
+* $\epsilon_{t}$가 양의 상관 관계를 가질 때, 인접한 잔차는 비슷한 크기를 갖는 경향이 있으므로 DW의 분자는 상대적으로 작거나 0이 됩니다.
+* $\epsilon_{t}$가 음의 상관 관계를 가질 때, 인접한 잔차는 비슷한 크기를 갖지만 부호가 반대이므로 DW의 분자는 상대적으로 크거나 4와 같습니다.
 
-Hence, low DW corresponds to positive autocorrelation. 
-Values of DW that tend towards 4 are in the region for negative autocorrelation.
+따라서 낮은 DW는 양의 자기 상관에 해당합니다.
+4에 가까워지는 DW 값은 음의 자기 상관 영역에 있습니다.
 
-The exact action limit for the Durbin--Watson test is difficult to calculate. 
-Hence, the test is used with a lower bound $d_{L}$ and an upper bound $d_{U}$. 
-We may use @tbl-DW as a rule of thumb.
+더빈-왓슨 검정에 대한 정확한 조치 한계는 계산하기 어렵습니다.
+따라서 이 검정은 하한 $d_{L}$과 상한 $d_{U}$와 함께 사용됩니다.
+@tbl-DW를 경험 법칙으로 사용할 수 있습니다.
 
-| from 0 to $d_{L}$ | from $d_{L}$ to $d_{U}$ | from $d_{U}$ to $4 - d_{U}$ | from $4 - d_{U}$ to $4 - d_{L}$ | from $4 - d_{L}$ to 4 |
+| 0에서 $d_{L}$까지 | $d_{L}$에서 $d_{U}$까지 | $d_{U}$에서 $4 - d_{U}$까지 | $4 - d_{U}$에서 $4 - d_{L}$까지 | $4 - d_{L}$에서 4까지 |
 |------|------|------|------|------|
-| Reject $H_{0}$, positive autocorrelation | Neither accept $H_{1}$ or reject $H_{0}$ | Do not reject $H_{0}$ | Neither accept $H_{1}$ or reject $H_{0}$ | Reject $H_{0}$, negative autocorrelation |
+| $H_{0}$ 기각, 양의 자기 상관 | $H_{1}$ 수용 또는 $H_{0}$ 기각 안 함 | $H_{0}$ 기각 안 함 | $H_{1}$ 수용 또는 $H_{0}$ 기각 안 함 | $H_{0}$ 기각, 음의 자기 상관 |
 
-: Regions of rejection of the null hypothesis for the Durbin--Watson test {#tbl-DW}
+: 더빈-왓슨 검정에 대한 귀무 가설 기각 영역 {#tbl-DW}
 
 
-The critical values $d_{L}$ and $d_{U}$ have been tabulated for combinations of various sample sizes, significance levels, and number of regressors in a model. 
-For large samples, a normal approximation can be used [@Chatterjee:Simonoff:2013]:
+임계값 $d_{L}$과 $d_{U}$는 다양한 표본 크기, 유의 수준 및 모형의 회귀 변수 수의 조합에 대해 표로 만들어졌습니다.
+큰 표본의 경우 정규 근사를 사용할 수 있습니다[@Chatterjee:Simonoff:2013].
 $$
 z = \left(\frac{\text{DW}}{2} - 1 \right)\sqrt{n}.
 $$
-Statistical software packages usually provide exact $p$-values based on the null distribution of the test statistic (a linear combination of $\chi^2$ variables).
+통계 소프트웨어 패키지는 일반적으로 검정 통계량의 귀무 분포( $\chi^2$ 변수의 선형 조합)를 기반으로 정확한 $p$-값을 제공합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher residuals DW test
+## 예시: 식기세척기 잔차 DW 검정
 
-Apply the Durbin--Watson test to the residuals from the dishwashers example, i.e., `DISH` vs. `RES`, using the R package `lmtest`.
+R 패키지 `lmtest`를 사용하여 식기세척기 예시, 즉 `DISH` 대 `RES`의 잔차에 더빈-왓슨 검정을 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -230,51 +230,51 @@ Apply the Durbin--Watson test to the residuals from the dishwashers example, i.e
 lmtest::dwtest(D$DISH ~ D$RES, alternative = "greater")
 ```
 
-Based on the low $p$-value we can reject the $H_{0}$: $\rho = 0$ at the 95% confidence level and accept the alternative $H_{1}$: $\rho > 0$.
+낮은 $p$-값을 기준으로 95% 신뢰 수준에서 $H_{0}$: $\rho = 0$을 기각하고 대안 $H_{1}$: $\rho > 0$을 수용할 수 있습니다.
 :::
 
-**Runs test**
+**런 검정**
 
-Departures of randomness can take so many forms that no single test for randomness is best for all situations. 
-For instance, one of the most common departures from randomness is the tendency of a sequence to persist in its direction of movement.
+무작위성의 이탈은 너무나 많은 형태를 취할 수 있어서 모든 상황에 가장 적합한 단일 무작위성 검정은 없습니다.
+예를 들어, 무작위성에서 가장 흔한 이탈 중 하나는 시퀀스가 이동 방향을 유지하려는 경향입니다.
 
-We can count the number of times a sequence of observations crossed a cut-off line, for example, the median line, and use this information to assess the randomness of $\epsilon_t$. 
-Alternatively, we count successions of positive or negative differences (see @sec-diffsign on the difference sign test). 
-Each such succession is called a *run*.
+관찰 시퀀스가 절단선(예: 중앙값 선)을 몇 번이나 넘었는지 계산하고 이 정보를 사용하여 $\epsilon_t$의 무작위성을 평가할 수 있습니다.
+또는 양수 또는 음수 차이의 연속을 계산합니다(@sec-diffsign의 차이 부호 검정 참조).
+이러한 각 연속을 *런*이라고 합니다.
 
-The formal test is the following. 
-When a sequence of $N$ observations with $n$ observations in positive runs and $m$ observations in negative runs is a random process with independent values generated from a continuous distribution, then the sampling distribution of the number of runs $R$ has the mean and variance
+공식적인 검정은 다음과 같습니다.
+$N$개의 관측치 시퀀스에서 양수 런에 $n$개의 관측치가 있고 음수 런에 $m$개의 관측치가 있을 때, 연속 분포에서 생성된 독립적인 값을 갖는 무작위 프로세스인 경우 런 수 $R$의 표본 분포는 평균과 분산을 갖습니다.
 $$
 \mathrm{E}(R) = \frac{1 + 2nm}{N}, \qquad \sigma^2(R) = \frac{2nm(2nm-n-m)}{N^2(N-1)},
 $$
-where $N = n + m$ is the total sample size.
+여기서 $N = n + m$은 총 표본 크기입니다.
 
-The only assumption for this test is that all sample observations come from a continuous distribution.
+이 검정에 대한 유일한 가정은 모든 표본 관측치가 연속 분포에서 나온다는 것입니다.
 
-The two-tail alternative is as follows
+양측 대안은 다음과 같습니다.
 
-* $H_{0}$: Sequence is generated by a random process;
-* $H_{1}$: Sequence is generated by a process containing either persistence or frequent changes in direction.
+* $H_{0}$: 시퀀스는 무작위 프로세스에 의해 생성됩니다.
+* $H_{1}$: 시퀀스는 지속성 또는 방향의 빈번한 변경을 포함하는 프로세스에 의해 생성됩니다.
 
-When positive autocorrelation (or persistence) is present, $R$ will be small. 
-On the other hand, if the process involves frequent changes in direction (negative autocorrelation or anti-persistence), $R$ will be too large.
+양의 자기 상관(또는 지속성)이 존재하면 $R$은 작습니다.
+반면에 프로세스에 방향의 빈번한 변경(음의 자기 상관 또는 반-지속성)이 포함되면 $R$은 너무 큽니다.
 
-When the number of observations is sufficiently large, i.e., $N > 30$, the runs test statistic $R$ is based on the standardized normal test statistic
+관측치 수가 충분히 클 때, 즉 $N > 30$일 때 런 검정 통계량 $R$은 표준화된 정규 검정 통계량을 기반으로 합니다.
 $$
 z = \frac{R - \mathrm{E}(R)}{ \sigma(R)}.
 $$
-Here $z$ follows approximately a standard normal distribution.
+여기서 $z$는 근사적으로 표준 정규 분포를 따릅니다.
 
-Runs test is easy to interpret. 
-Runs test allows assessing only the first-order serial correlation in the residuals, i.e., to test whether two residuals that are one lag apart are correlated.
+런 검정은 해석하기 쉽습니다.
+런 검정은 잔차의 1차 계열 상관만 평가할 수 있습니다. 즉, 한 시차 떨어진 두 잔차가 상관되어 있는지 여부를 검정할 수 있습니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher residuals runs test
+## 예시: 식기세척기 잔차 런 검정
 
 ```{r}
 #| label: fig-Runs
-#| fig-cap: "Runs tests and plots of independent normally distributed simulations $x_t$ and the `DISH` residuals."
+#| fig-cap: "독립 정규 분포 시뮬레이션 $x_t$와 `DISH` 잔차의 런 검정 및 그림."
 #| code-fold: false
 
 par(mfrow = c(1, 2))
@@ -282,154 +282,154 @@ lawstat::runs.test(x, plot.it = TRUE)
 lawstat::runs.test(mod1$residuals, plot.it = TRUE)
 ```
 
-The $p$-value for the runs test for the residuals is very low (@fig-Runs), which supports the findings of the DW test that residuals are first-order serially correlated.
+잔차에 대한 런 검정의 $p$-값은 매우 낮으며(@fig-Runs), 이는 잔차가 1차 계열 상관되어 있다는 DW 검정 결과를 뒷받침합니다.
 :::
 
 
-### Normality
+### 정규성
 
-There are two major ways of checking normality. 
-Graphical methods visualize differences between empirical data and theoretical normal distribution. 
-Numerical methods conduct statistical tests on the null hypothesis that the variable is normally distributed.
+정규성을 확인하는 주요 방법에는 두 가지가 있습니다.
+그래픽 방법은 경험적 데이터와 이론적 정규 분포 간의 차이를 시각화합니다.
+수치적 방법은 변수가 정규 분포를 따른다는 귀무 가설에 대한 통계적 검정을 수행합니다.
 
 
-**Graphical methods**
+**그래픽 방법**
 
-Graphical methods visualize the data using graphs, such as histograms, stem-and-leaf plots, box plots, etc. 
-For example, @fig-Histograms shows a histogram of the simulated normally distributed data and the residuals from the dishwasher example with superimposed normal curves with the corresponding mean and standard deviation.
+그래픽 방법은 히스토그램, 줄기-잎 그림, 상자 그림 등과 같은 그래프를 사용하여 데이터를 시각화합니다.
+예를 들어, @fig-Histograms는 시뮬레이션된 정규 분포 데이터와 식기세척기 예제의 잔차에 해당 평균 및 표준 편차를 갖는 정규 곡선을 중첩한 히스토그램을 보여줍니다.
 
 ```{r}
 #| label: fig-Histograms
-#| fig-cap: "Histograms of the simulated normally distributed values and estimated regression residuals."
+#| fig-cap: "시뮬레이션된 정규 분포 값과 추정된 회귀 잔차의 히스토그램."
 
 p1 <- ggplot(data.frame(x = x), aes(x = x)) + 
     geom_histogram(aes(y = after_stat(density)), binwidth = 300, fill = "grey50") +
     stat_function(fun = dnorm, 
                   args = list(mean = mean(x), sd = sd(x)),
                   col = 1, lwd = 1.5) +
-    ylab("Density") +
-    ggtitle("Random normal values")
+    ylab("밀도") +
+    ggtitle("무작위 정규 값")
 p2 <- ggplot(x, aes(x = mod1$residuals)) + 
     geom_histogram(aes(y = after_stat(density)), binwidth = 300, fill = "grey50") +
     stat_function(fun = dnorm, 
                   args = list(mean = mean(mod1$residuals), sd = sd(mod1$residuals)),
                   col = 1, lwd = 1.5) +
-    ylab("Density") +
-    ggtitle("Model residuals")
+    ylab("밀도") +
+    ggtitle("모형 잔차")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Another very popular graphical method of assessing normality is the quantile-quantile (Q-Q) plot. 
-The Q-Q plot compares the ordered values of a variable with the corresponding ordered values of the normal distribution.
+정규성을 평가하는 또 다른 매우 인기 있는 그래픽 방법은 분위수-분위수(Q-Q) 그림입니다.
+Q-Q 그림은 변수의 정렬된 값을 정규 분포의 해당 정렬된 값과 비교합니다.
 
 ::: {.callout-note}
-Q-Q plots can also be used to compare sample quantiles with quantiles of other, not normal, distribution (e.g., $t$ or gamma distribution), or to compare quantiles of two samples (to assess if both samples come from the same, unspecified, distribution).
+Q-Q 그림은 표본 분위수를 다른 정규 분포가 아닌 분포(예: $t$ 또는 감마 분포)의 분위수와 비교하거나 두 표본의 분위수를 비교하는 데에도 사용할 수 있습니다(두 표본이 동일한 지정되지 않은 분포에서 나왔는지 평가하기 위해).
 :::
 
-Let $X$ be a random variable having the property that the equation
+$X$를 방정식
 $$
 \Pr \left( X \leqslant x \right) = \alpha
 $$
-has a unique solution $x = x_{(\alpha)}$ for each $0 < \alpha < 1$. That is, there exists $x_{(\alpha)}$ such that
+가 각 $0 < \alpha < 1$에 대해 고유한 해 $x = x_{(\alpha)}$를 갖는 속성을 갖는 확률 변수라고 합시다. 즉, 다음을 만족하는 $x_{(\alpha)}$가 존재합니다.
 $$
 \Pr \left( X \leqslant x_{(\alpha)} \right) = \alpha
 $${#eq-prob}
-and no other value of $x$ satisfies @eq-prob. 
-Then we will call $x_{(\alpha)}$ the $\alpha$th *(population) quantile* of $X$. 
-Note that any normal distribution has this uniqueness property. 
-If we consider a standard normal $Z \sim N(0, 1)$, then some well-known quantiles are:
+그리고 다른 $x$ 값은 @eq-prob를 만족하지 않습니다.
+그러면 $x_{(\alpha)}$를 $X$의 $\alpha$번째 *(모집단) 분위수*라고 부릅니다.
+모든 정규 분포는 이 고유성 속성을 갖습니다.
+표준 정규 $Z \sim N(0, 1)$를 고려하면 잘 알려진 몇 가지 분위수는 다음과 같습니다.
 
-* $z_{(0.5)} = 0$ (the median), `qnorm(0.5, mean = 0, sd = 1)`
-* $z_{(0.05)} = -1.645$ and $z_{(0.95)} = 1.645$
-* $z_{(0.025)} = -1.96$ and $z_{(0.975)} = 1.96$
+* $z_{(0.5)} = 0$ (중앙값), `qnorm(0.5, mean = 0, sd = 1)`
+* $z_{(0.05)} = -1.645$ 및 $z_{(0.95)} = 1.645$
+* $z_{(0.025)} = -1.96$ 및 $z_{(0.975)} = 1.96$
 
-We call the 0.25th, 0.5th, 0.75th quantiles the first, the second, and the third quartiles, respectively. 
-The quartiles divide our data into 4 equal parts.
+0.25번째, 0.5번째, 0.75번째 분위수를 각각 제1사분위수, 제2사분위수, 제3사분위수라고 부릅니다.
+사분위수는 데이터를 4개의 동일한 부분으로 나눕니다.
 
-Now suppose $X \sim N (\mu, \sigma^{2})$. 
-By standardizing to $Z \sim N(0, 1)$, we obtain
+이제 $X \sim N (\mu, \sigma^{2})$라고 가정합니다.
+$Z \sim N(0, 1)$로 표준화하면 다음을 얻습니다.
 $$
 \alpha = \Pr \left( X \leqslant x_{(\alpha)} \right) = \Pr \left( \frac{X - \mu}{ \sigma} \leqslant \frac{x_{(\alpha)} - \mu}{\sigma} \right) = \Pr \left( Z \leqslant \frac{x_{(\alpha)} - \mu}{ \sigma} \right) .
 $$
 
-We also have $\alpha = \Pr (Z \leqslant z_{(\alpha)} )$ by definition. 
-It follows that
+또한 정의에 따라 $\alpha = \Pr (Z \leqslant z_{(\alpha)} )$입니다.
+따라서 다음이 성립합니다.
 $$
-z_{(\alpha)} = \frac{x_{(\alpha)} - \mu}{ \sigma} ~~~~ \mbox{and hence} ~~~~ x_{(\alpha)} = \sigma z_{(\alpha)} + \mu.
+z_{(\alpha)} = \frac{x_{(\alpha)} - \mu}{ \sigma} ~~~~ \mbox{그리고 따라서} ~~~~ x_{(\alpha)} = \sigma z_{(\alpha)} + \mu.
 $$
 
-Thus, if $X$ is truly normal, a plot of the quantiles of $X$ vs. the quantiles of the standard normal distribution should yield a straight line. 
-A plot of the quantiles of $X$ vs. the quantiles of $Z$ is called a Q-Q plot.
+따라서 $X$가 실제로 정규 분포를 따른다면 $X$의 분위수 대 표준 정규 분포의 분위수 그림은 직선을 나타내야 합니다.
+$X$의 분위수 대 $Z$의 분위수 그림을 Q-Q 그림이라고 합니다.
 
-**Estimating quantiles from data** 
+**데이터에서 분위수 추정**
 
-Let $X_{1}, \dots, X_{n}$ be a sequence of observations. 
-Ideally, $X_{1}, \dots, X_{n}$ should represent i.i.d. observations but we will be happy if preliminary tests indicate that they are homoskedastic and uncorrelated (see the previous sections). 
-We order them from the smallest to the largest and indicate this using the notation
+$X_{1}, \dots, X_{n}$을 관측치 시퀀스라고 합시다.
+이상적으로 $X_{1}, \dots, X_{n}$은 i.i.d. 관측치를 나타내야 하지만 예비 검사에서 등분산이고 비상관임을 나타내면 만족할 것입니다.
+가장 작은 것부터 가장 큰 것 순으로 정렬하고 다음 표기법을 사용하여 이를 나타냅니다.
 $$
 X_{(1/n)} < X_{(2/n)} < X_{(3/n)} < \dots < X_{\left((n - 1)/n\right)} < X_{(n/n)}.
 $$
 
-The above ordering assumes no ties, but ties can be quite common in data, even continuous data, because of rounding. 
-As long as the proportion of ties is small, this method can be used.
+위의 순서는 동률이 없다고 가정하지만 반올림 때문에 연속 데이터에서도 동률이 매우 흔할 수 있습니다.
+동률의 비율이 작은 한 이 방법을 사용할 수 있습니다.
 
-Note that the proportion of observations less than or equal to $X_{(k/n)}$ is exactly $k/n$. 
-Hence $X_{(k/n)}$, called the $k$th *sample quantile*, is an estimate of the population quantile $x_{(k/n)}$.
+$X_{(k/n)}$보다 작거나 같은 관측치의 비율은 정확히 $k/n$입니다.
+따라서 $k$번째 *표본 분위수*라고 불리는 $X_{(k/n)}$은 모집단 분위수 $x_{(k/n)}$의 추정치입니다.
 
-The normal Q-Q plot is obtained by plotting the sample quantiles vs. the quantiles of the standard normal distribution. 
-The base-R function `qqnorm()` produces a normal Q-Q plot of data and the function `qqline()` adds a line that passes through the first and third quartiles. 
-The R package `ggplot2` has analogous functions `ggplot2::stat_qq()` and `ggplot2::stat_qq_line()`. 
-The R packages `car` and `ggpubr` also draw Q-Q plots, but also add a point-wise confidence envelope with their functions `car::qqPlot()` (base-R plot) and `ggpubr::ggqqplot()` (ggplot-type plot). 
+정규 Q-Q 그림은 표본 분위수를 표준 정규 분포의 분위수와 비교하여 얻습니다.
+기본 R 함수 `qqnorm()`은 데이터의 정규 Q-Q 그림을 생성하고 함수 `qqline()`은 제1사분위수와 제3사분위수를 통과하는 선을 추가합니다.
+R 패키지 `ggplot2`에는 유사한 함수 `ggplot2::stat_qq()` 및 `ggplot2::stat_qq_line()`이 있습니다.
+R 패키지 `car` 및 `ggpubr`도 Q-Q 그림을 그리지만 해당 함수 `car::qqPlot()`(기본 R 그림) 및 `ggpubr::ggqqplot()`(ggplot 유형 그림)을 사용하여 점별 신뢰 구간을 추가합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher residuals normal Q-Q plot
+## 예시: 식기세척기 잔차 정규 Q-Q 그림
 
-@fig-QQ shows the Q-Q plots of the residuals from the dishwasher example and the simulated normal data with the same mean and standard deviation.
+@fig-QQ는 식기세척기 예제의 잔차와 동일한 평균 및 표준 편차를 갖는 시뮬레이션된 정규 데이터의 Q-Q 그림을 보여줍니다.
 
 ```{r}
 #| label: fig-QQ
-#| fig-cap: "Normal Q-Q plots of the normally distributed simulated values $x_t$ and the dishwasher residuals."
+#| fig-cap: "정규 분포 시뮬레이션 값 $x_t$와 식기세척기 잔차의 정규 Q-Q 그림."
 
 p1 <- ggpubr::ggqqplot(x) + 
-    ggtitle("Random normal values") +
-    xlab("Standard normal quantiles")
+    ggtitle("무작위 정규 값") +
+    xlab("표준 정규 분위수")
 p2 <- ggpubr::ggqqplot(mod1$residuals) + 
-    ggtitle("Model residuals") +
-    xlab("Standard normal quantiles")
+    ggtitle("모형 잔차") +
+    xlab("표준 정규 분위수")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Both Q-Q plots in @fig-QQ show a good correspondence of the sample quantiles with theoretical normal quantiles, providing no sufficient evidence against normality of the underlying distributions.
+@fig-QQ의 두 Q-Q 그림 모두 표본 분위수가 이론적 정규 분위수와 잘 일치함을 보여주며, 기본 분포의 정규성에 반하는 충분한 증거를 제공하지 않습니다.
 :::
 
-Although visually appealing, these graphical methods do not provide objective criteria to determine the normality of variables.
+시각적으로 매력적이지만 이러한 그래픽 방법은 변수의 정규성을 결정하는 객관적인 기준을 제공하지 않습니다.
 
-**Shapiro--Wilk normality test**
+**샤피로-윌크 정규성 검정**
 
-One of the most popular numerical methods for assessing normality is the Shapiro--Wilk (SW) test: 
+정규성을 평가하는 가장 인기 있는 수치적 방법 중 하나는 샤피로-윌크(SW) 검정입니다.
 
-* $H_0$: the sample data come from a normally distributed population; 
-* $H_1$: the population is not normally distributed). 
+* $H_0$: 표본 데이터는 정규 분포를 따르는 모집단에서 나왔습니다.
+* $H_1$: 모집단은 정규 분포를 따르지 않습니다.
 
-The SW test is the ratio of the best estimator of the variance to the usual corrected sum of squares estimator of the variance. 
-It has been originally constructed by considering the regression of ordered sample values on corresponding expected normal order statistics. 
-The SW statistic is given by
+SW 검정은 분산의 최량 추정량과 분산의 일반적인 수정 제곱합 추정량의 비율입니다.
+원래 정렬된 표본 값을 해당 예상 정규 순서 통계량에 대한 회귀를 고려하여 구성되었습니다.
+SW 통계량은 다음과 같이 주어집니다.
 $$
 \mbox{SW} = \frac{\left(\sum a_{i} x_{(i)} \right)^{2}}{\sum \left(x_{i} - \bar{x} \right)^{2}},
 $$
-where $x_{(i)}$ are the ordered sample values ($x_{(1)}$ is the smallest) and the $a_{i}$ are constants generated from the means, variances, and covariances of the order statistics of a sample of size $n$ from a normal distribution. 
-The SW statistic lies between 0 and 1. 
-If the SW statistic is close to 1, this indicates the normality of the data. 
-The SW statistic requires the sample size $n$ to be between 7 and 2000.
+여기서 $x_{(i)}$는 정렬된 표본 값($x_{(1)}$이 가장 작음)이고 $a_{i}$는 정규 분포에서 크기가 $n$인 표본의 순서 통계량의 평균, 분산 및 공분산에서 생성된 상수입니다.
+SW 통계량은 0과 1 사이에 있습니다.
+SW 통계량이 1에 가까우면 데이터의 정규성을 나타냅니다.
+SW 통계량은 표본 크기 $n$이 7에서 2000 사이여야 합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher residuals normality test
+## 예시: 식기세척기 잔차 정규성 검정
 
-Based on the $p$-values below, we cannot reject the null hypothesis of normality in both cases.
+아래 $p$-값을 기준으로 두 경우 모두 정규성 귀무 가설을 기각할 수 없습니다.
 
 ```{r}
 #| code-fold: false
@@ -440,26 +440,26 @@ shapiro.test(mod1$residuals)
 :::
 
 
-### Summary of the simple linear regression residual diagnostics
+### 단순 선형 회귀 잔차 진단 요약
 
-1. The residuals do not have a constant mean.
-1. The residuals do not seem to have a constant variance.
-1. The residuals are positively correlated.
-1. The residuals look normally distributed (but the SW statistic might be affected by the serial correlation of the residuals).
+1. 잔차는 일정한 평균을 갖지 않습니다.
+1. 잔차는 일정한 분산을 갖는 것처럼 보이지 않습니다.
+1. 잔차는 양의 상관 관계를 갖습니다.
+1. 잔차는 정규 분포를 따르는 것처럼 보입니다(그러나 SW 통계량은 잔차의 계열 상관에 의해 영향을 받을 수 있습니다).
 
 
-## Multiple linear regression
+## 다중 선형 회귀
 
-Here we consider a case of $p$ explanatory variables
+여기서는 $p$개의 설명 변수가 있는 경우를 고려합니다.
 $$
 Y_{t} = \beta_{0} + \beta_{1} X_{t,1} + \dots + \beta_{p} X_{t,p} + \epsilon_{t} \quad (t = 1,\dots,n).
 $$
 
-This can be expressed more compactly in a matrix notation as
+이것은 행렬 표기법으로 더 간결하게 표현할 수 있습니다.
 $$
 \boldsymbol{Y} = \boldsymbol{X} \boldsymbol{\beta} + \boldsymbol{\epsilon},
 $$
-where $\boldsymbol{Y} = (Y_{1}, \dots, Y_{n})^{\top}$, $\boldsymbol{\beta} = (\beta_{0} , \dots, \beta_{p})^{\top}$, $\boldsymbol{\epsilon} = (\epsilon_{1} , \dots, \epsilon_{n})^{\top}$; $\boldsymbol{X}$ is an $n \times (p + 1)$ design matrix
+여기서 $\boldsymbol{Y} = (Y_{1}, \dots, Y_{n})^{\top}$, $\boldsymbol{\beta} = (\beta_{0} , \dots, \beta_{p})^{\top}$, $\boldsymbol{\epsilon} = (\epsilon_{1} , \dots, \epsilon_{n})^{\top}$이고, $\boldsymbol{X}$는 $n \times (p + 1)$ 설계 행렬입니다.
 $$
 \boldsymbol{X} = \left(
 \begin{array}{cccc}
@@ -471,119 +471,118 @@ $$
 \right).
 $$
 
-Here the historical dataset for the dependent variable consists of the observations $Y_{1}, \dots, Y_{n}$; the historical dataset for the independent variables consists of the observations in the matrix $\boldsymbol{X}$.
+여기서 종속 변수에 대한 과거 데이터 세트는 관측치 $Y_{1}, \dots, Y_{n}$으로 구성됩니다. 독립 변수에 대한 과거 데이터 세트는 행렬 $\boldsymbol{X}$의 관측치로 구성됩니다.
 
-Minimizing $SSE =(\boldsymbol{Y} - \boldsymbol{X} \hat{\boldsymbol{\beta}})^{\top} (\boldsymbol{Y} - \boldsymbol{X} \hat{\boldsymbol{\beta}})$ yields the least squares solutions
+$SSE =(\boldsymbol{Y} - \boldsymbol{X} \hat{\boldsymbol{\beta}})^{\top} (\boldsymbol{Y} - \boldsymbol{X} \hat{\boldsymbol{\beta}})$를 최소화하면 비특이 $\boldsymbol{X}^{\top}\boldsymbol{X}$에 대한 최소 제곱 해를 얻습니다.
 $$
 \hat{\boldsymbol{\beta}} = \left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{-1} \boldsymbol{X}^{\top} \boldsymbol{Y}
 $$
-for non-singular $\boldsymbol{X}^{\top}\boldsymbol{X}$.
 
-The forecast of a future value $Y_{t}$ is then given by
+그러면 미래 값 $Y_{t}$의 예측은 다음과 같이 주어집니다.
 $$
 \hat{Y}_{t} = \boldsymbol{x}^{\top}_{t} \hat{\boldsymbol{\beta}},
 $$
-where $\boldsymbol{x}_{t}$ is a (column) vector at the time $t$.
+여기서 $\boldsymbol{x}_{t}$는 시간 $t$에서의 (열) 벡터입니다.
 
-Under the OLS assumptions (recall them), we obtain
+OLS 가정(기억하십시오) 하에서 다음을 얻습니다.
 $$
 \mathrm{var} \left( \hat{\beta}_{j} \right) = \sigma^{2} \left( \boldsymbol{X }^{\top} \boldsymbol{X} \right)^{-1}_{jj},
 $$
-where the $\left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{-1}_{jj}$ denotes the $j$th diagonal element of $\left( \boldsymbol{X }^{\top} \boldsymbol{X} \right)^{-1}$.
+여기서 $\left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{-1}_{jj}$는 $\left( \boldsymbol{X }^{\top} \boldsymbol{X} \right)^{-1}$의 $j$번째 대각선 요소를 나타냅니다.
 
-This yields
+이것은 다음을 산출합니다.
 $$
 s.e. \left( \hat{\beta}_{j} \right) = \hat{\sigma} \sqrt{ \left( \boldsymbol{X }^{\top} \boldsymbol{X} \right)^{-1}_{jj}}.
 $$
 
-Note that here the degrees of freedom (d.f.)\ are $n - (p + 1) = n - p - 1$. 
-(The number of estimated parameters for the independent variables is $p$, plus one for the intercept, i.e., $p + 1$.)
+여기서 자유도(d.f.)는 $n - (p + 1) = n - p - 1$입니다.
+(독립 변수에 대한 추정된 매개변수 수는 $p$이고 절편에 대해 하나를 더하면 $p + 1$입니다.)
 
-Under the OLS assumptions, a $100(1 - \alpha)$\% confidence interval for the parameter $\beta_{j}$ ($j = 0, 1, \dots, p$) is given by
+OLS 가정 하에서 매개변수 $\beta_{j}$($j = 0, 1, \dots, p$)에 대한 $100(1 - \alpha)$% 신뢰 구간은 다음과 같이 주어집니다.
 $$
 \begin{split}
-\hat{\beta}_{j} &\pm t_{\alpha / 2, n - (p+1)} s.e.\left( \hat{\beta}_{j} \right) \text{ or} \\
+\hat{\beta}_{j} &\pm t_{\alpha / 2, n - (p+1)} s.e.\left( \hat{\beta}_{j} \right) \text{ 또는} \\
 \hat{\beta}_{j} &\pm t_{\alpha / 2, n - (p+1)} \hat{\sigma} \sqrt{\left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{-1}_{jj}}.
 \end{split}
 $${#eq-betaCI}
 
-Typically, $s.e.(\hat{\beta}_{j})$ is available directly from the R output, so @eq-betaCI is calculated automatically.
+일반적으로 $s.e.(\hat{\beta}_{j})$는 R 출력에서 직접 사용할 수 있으므로 @eq-betaCI는 자동으로 계산됩니다.
 
-Under the OLS assumptions, it can be shown that
+OLS 가정 하에서 다음을 보일 수 있습니다.
 $$
 \mathrm{var} \left( Y_{t} - \hat{Y}_{t} \right) = \sigma^{2} \left( \boldsymbol{x}^{\top}_{t} \left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{- 1} \boldsymbol{x}_{t} + 1 \right),
 $$
-yielding a $100(1 - \alpha)$\% prediction interval for $Y_{t}$:
+$Y_{t}$에 대한 $100(1 - \alpha)$% 예측 구간을 산출합니다.
 $$
 \boldsymbol{x}^{\top}_{t} \hat{\boldsymbol{\beta}} \pm t_{\alpha / 2, n-(p+1)} \hat{\sigma} \sqrt{ \boldsymbol{x}^{\top}_{t} \left( \boldsymbol{X}^{\top} \boldsymbol{X} \right)^{-1}\boldsymbol{x}_{t} + 1}.
 $$
 
-We usually never perform these calculations by hand and will use the corresponding software functions, e.g., using the function `predict()`, see an example code below.
+일반적으로 이러한 계산을 수동으로 수행하지 않으며 해당 소프트웨어 함수(예: `predict()` 함수 사용)를 사용합니다. 아래 예시 코드를 참조하십시오.
 
-**What else can we get from the regression output?**
+**회귀 출력에서 또 무엇을 얻을 수 있습니까?**
 
-As in SLR, we will look for the $t$-statistics and $p$-values to get an idea about the statistical significance of each of the predictors $X_{t,1}, X_{t,2}, \dots, X_{t,p}$. 
-The confidence intervals constructed above correspond to individual tests of hypothesis about a parameter, i.e., $H_{0}$: $\beta_{j} = 0$ vs. $H_{1}$: $\beta_{j} \neq 0$.
+SLR에서와 마찬가지로 각 예측 변수 $X_{t,1}, X_{t,2}, \dots, X_{t,p}$의 통계적 유의성에 대한 아이디어를 얻기 위해 $t$-통계량과 $p$-값을 살펴볼 것입니다.
+위에서 구성한 신뢰 구간은 매개변수에 대한 개별 가설 검정, 즉 $H_{0}$: $\beta_{j} = 0$ 대 $H_{1}$: $\beta_{j} \neq 0$에 해당합니다.
 
-We can also make use of the $F$-test. 
-The $F$-test considers *all* parameters (other than the intercept $\beta_{0}$) simultaneously, testing
+$F$-검정도 사용할 수 있습니다.
+$F$-검정은 절편 $\beta_{0}$을 제외한 *모든* 매개변수를 동시에 고려하여 다음을 검정합니다.
 $$
 \begin{split}
 H_{0}{:} ~ \beta_{1} &= \dots = \beta_{p} = 0 ~~~ \text{vs.} \\
-H_{1}{:} ~ \beta_{j} &\neq 0 ~~~ \mbox{for at least one} ~~~ j \in \{1, \dots, p \}.
+H_{1}{:} ~ \beta_{j} &\neq 0 ~~~ \mbox{최소한 하나의} ~~~ j \in \{1, \dots, p \}\text{에 대해}.
 \end{split}
 $$
 
-Formally, $F_{\rm{obs}} = \rm{MSR/MSE}$ (the ratio of the mean square due to regression and the mean square due to stochastic errors).
+공식적으로 $F_{\rm{obs}} = \rm{MSR/MSE}$ (회귀로 인한 평균 제곱과 확률적 오차로 인한 평균 제곱의 비율)입니다.
 
-We reject $H_{0}$ when $F_{\rm{obs}}$ is too large relative to a cut-off point determined by the degrees of freedom of the $F$-distribution. 
-The $p$-value for this $F$-test is provided in the `lm()` output. 
-Rejecting $H_{0}$ is equivalent to stating that the model has some explanatory value within the range of the data set, meaning that changes in at least some of the explanatory $X$-variables correlate to changes in the average value of $Y$.
+$F_{\rm{obs}}$가 $F$-분포의 자유도에 의해 결정된 절단점에 비해 너무 클 때 $H_{0}$를 기각합니다.
+이 $F$-검정에 대한 $p$-값은 `lm()` 출력에 제공됩니다.
+$H_{0}$를 기각하는 것은 모형이 데이터 세트 범위 내에서 일부 설명력을 갖는다는 것을 의미하며, 이는 최소한 일부 설명 $X$-변수의 변화가 $Y$의 평균값 변화와 상관 관계가 있음을 의미합니다.
 
-Recall that
+다음 사항을 기억하십시오.
 $$
 \begin{split}
 \mathrm{SST} &= \sum_{i=1}^n(Y_t-\overline{Y})^2= \mathrm{SSR} + \mathrm{SSE},\\
 \mathrm{SSE} &=\sum_{t=1}^n(Y_t-\hat{\beta}_0 - \hat{\beta}_1 X_{t,1}-\dots- \hat{\beta}_p X_{t,p})
 \end{split}
 $$
-and, hence,
+따라서,
 $$
 \rm{SSR}=\rm{SST}-\rm{SSE}.
 $$
 
-To conclude that the model has a reasonable fit, however, we would additionally like to see a high $R^{2}$ value, where
+그러나 모형이 합리적인 적합도를 갖는다고 결론 내리려면 추가적으로 높은 $R^{2}$ 값을 확인해야 합니다. 여기서
 $$
 R^{2} = \rm{SSR/SST}
 $$
-is the proportion of the total sum of squares explained by the regression.
+는 회귀에 의해 설명되는 총 제곱합의 비율입니다.
 
-Small $R^{2}$ means that the stochastic fluctuations around the regression line (or prediction equation) are large, making the prediction task difficult, even though there may be a genuine explanatory relationship between the average value $\mathrm{E}(Y)$ and some of the $X$-variables.
+작은 $R^{2}$는 회귀선(또는 예측 방정식) 주위의 확률적 변동이 크다는 것을 의미하며, 평균값 $\mathrm{E}(Y)$와 일부 $X$-변수 간에 실제 설명 관계가 있을 수 있더라도 예측 작업을 어렵게 만듭니다.
 
-Another criterion to judge the aptness of the obtained model is the adjusted $R^2$:
+얻어진 모형의 적합성을 판단하는 또 다른 기준은 수정된 $R^2$입니다.
 $$
 R^2_{adj}=1-\frac{n-1}{n-p}\left( 1-R^2 \right).
 $$
 
-Unlike $R^2$ itself, $R^2_{adj}$ need not increase if an arbitrary (even useless) predictor is added to the model because of the correction $(n-1)/(n-p)$.
+$R^2$ 자체와 달리 $R^2_{adj}$는 보정 $(n-1)/(n-p)$ 때문에 임의의 (심지어 쓸모없는) 예측 변수가 모형에 추가되더라도 반드시 증가하지는 않습니다.
 
 ::: {.callout-note}
-The intercept $\beta_{0}$ is not included in the $F$-test because there is no explanatory variable associated with it. 
-In other words, $\beta_{0}$ does not contribute to the regression part of the model.
+절편 $\beta_{0}$는 설명 변수와 관련이 없으므로 $F$-검정에 포함되지 않습니다.
+즉, $\beta_{0}$는 모형의 회귀 부분에 기여하지 않습니다.
 :::
 
 ::: {.callout-note icon=false}
 
-## Example: Dishwasher shipments multiple linear regression
+## 예시: 식기세척기 출하량 다중 선형 회귀
 
-Let us now extend the SLR model that we considered previously and include another potential predictor, the durable goods expenditures (billion of 1972 dollars). 
-The goal is to build a model to predict the unit factory shipments of dishwashers (DISH) vs. private residential investment (RES) and durable goods expenditures (DUR) using a multiple linear regression model (MLR):
+이제 이전에 고려했던 SLR 모형을 확장하고 또 다른 잠재적 예측 변수인 내구재 지출(1972년 달러 기준 10억 달러)을 포함해 보겠습니다.
+목표는 다중 선형 회귀 모형(MLR)을 사용하여 식기세척기(DISH)의 단위 공장 출하량을 민간 주거 투자(RES) 및 내구재 지출(DUR)과 비교하여 예측하는 모형을 구축하는 것입니다.
 $$
 Y_{t} = \beta_{0} + \beta_{1} X_{t,1} + \beta_{2} X_{t,2} + \epsilon_t,
 $$
-where $X_{t,1}$ is the private residential investment `RES`; $X_{t,2}$ is the durable goods expenditures `DUR`.
+여기서 $X_{t,1}$은 민간 주거 투자 `RES`이고, $X_{t,2}$는 내구재 지출 `DUR`입니다.
 
-Now we apply the OLS method to estimate the coefficients $\beta_{0}$, $\beta_{1}$, and $\beta_{2}$ using the function `lm()`.
+이제 OLS 방법을 적용하여 `lm()` 함수를 사용하여 계수 $\beta_{0}$, $\beta_{1}$ 및 $\beta_{2}$를 추정합니다.
 
 ```{r}
 #| code-fold: false
@@ -592,32 +591,32 @@ mod2 <- lm(DISH ~ RES + DUR, data = D)
 summary(mod2)
 ```
 
-We have a high $R^2_{adj} =$ `r summary(mod2)$adj.r.squared` and both predictors are statistically significant, but can we already wholeheartedly trust these results? 
-We need to perform the residual diagnostics.
+$R^2_{adj} =$ `r summary(mod2)$adj.r.squared`가 높고 두 예측 변수 모두 통계적으로 유의하지만, 이 결과를 전적으로 신뢰할 수 있을까요?
+잔차 진단을 수행해야 합니다.
 
-Plot the estimated residuals $\hat{\epsilon}_{t} = \hat{Y}_{t} - Y_{t}$ vs. the observed $Y_{t}$ ($t = 1, 2, \dots, 26$ or `Year`) -- see @fig-DishResiduals2.
-The plots show a remaining pattern, with residuals peaking, then declining.
-The assumption of homoskedasticity is violated.
-We should update the model so that this pattern is modeled or removed.
+추정된 잔차 $\hat{\epsilon}_{t} = \hat{Y}_{t} - Y_{t}$를 관찰된 $Y_{t}$($t = 1, 2, \dots, 26$ 또는 `Year`)와 비교하여 그림을 그립니다. @fig-DishResiduals2를 참조하십시오.
+그림은 잔차가 정점에 도달했다가 감소하는 나머지 패턴을 보여줍니다.
+등분산성 가정이 위반되었습니다.
+이 패턴이 모델링되거나 제거되도록 모형을 업데이트해야 합니다.
 
 ```{r}
 #| label: fig-DishResiduals2
-#| fig-cap: "Residuals vs. time and vs. fitted values."
+#| fig-cap: "시간 및 적합값에 대한 잔차."
 
 p1 <- ggplot(D, aes(x = Year, y = mod2$residuals)) + 
     geom_line() + 
     geom_hline(yintercept = 0, lty = 2, col = 4) + 
-    ylab("Residuals")
+    ylab("잔차")
 p2 <- ggplot(D, aes(x = mod2$fitted.values, y = mod2$residuals)) + 
     geom_point() + 
     geom_hline(yintercept = 0, lty = 2, col = 4) + 
-    xlab("Fitted values") +
-    ylab("Residuals")
+    xlab("적합값") +
+    ylab("잔차")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Check that the residuals $\epsilon_{t}$ are uncorrelated (the Durbin--Watson and the runs tests):
+잔차 $\epsilon_{t}$가 비상관인지 확인합니다(더빈-왓슨 검정 및 런 검정).
 
 ```{r}
 #| code-fold: false
@@ -631,9 +630,9 @@ lmtest::dwtest(D$DISH ~ D$RES + D$DUR)
 lawstat::runs.test(mod2$residuals, plot.it = FALSE)
 ```
 
-Both the tests reject $H_0$ of no autocorrelation; hence the assumption of uncorrelatedness is violated.
+두 검정 모두 자기 상관이 없다는 $H_0$를 기각하므로 비상관성 가정이 위반되었습니다.
 
-Check that the residuals $\epsilon_{t}$ are normally distributed using the Q-Q plot (@fig-QQ2) and Shapiro--Wilk test.
+Q-Q 그림(@fig-QQ2)과 샤피로-윌크 검정을 사용하여 잔차 $\epsilon_{t}$가 정규 분포를 따르는지 확인합니다.
 
 ```{r}
 #| code-fold: false
@@ -643,29 +642,29 @@ shapiro.test(mod2$residuals)
 
 ```{r}
 #| label: fig-QQ2
-#| fig-cap: "Normal Q-Q plot of the multiple regression residuals."
+#| fig-cap: "다중 회귀 잔차의 정규 Q-Q 그림."
 
 ggpubr::ggqqplot(mod2$residuals) + 
-    xlab("Standard normal quantiles")
+    xlab("표준 정규 분위수")
 ```
 
-@fig-QQ2 and $p$-value of the Shapiro--Wilk test do not provide evidence against the null hypothesis of normality.
-The assumption of normality is satisfied.
+@fig-QQ2와 샤피로-윌크 검정의 $p$-값은 정규성 귀무 가설에 반하는 증거를 제공하지 않습니다.
+정규성 가정이 충족되었습니다.
 :::
 
 
-### Summary of the multiple linear regression residual diagnostics
+### 다중 선형 회귀 잔차 진단 요약
 
-1. The $R^{2}$ has been improved.
-1. We do not see a visible improvement in terms of the mean and variance of the residuals.
-1. The residuals are still positively correlated.
-1. The residuals look normally distributed.
+1. $R^{2}$가 개선되었습니다.
+1. 잔차의 평균과 분산 측면에서 눈에 띄는 개선은 보이지 않습니다.
+1. 잔차는 여전히 양의 상관 관계를 갖습니다.
+1. 잔차는 정규 분포를 따르는 것처럼 보입니다.
 
-Even though not all OLS assumptions are satisfied we shall consider how to predict the future values of $Y$ and to construct the prediction intervals using R.
+모든 OLS 가정이 충족되지는 않았지만 R을 사용하여 $Y$의 미래 값을 예측하고 예측 구간을 구성하는 방법을 고려할 것입니다.
 
-For example, assume that we need to predict the future unit factory shipments of dishwashers (`DISH`) based on the private residential investment of 100 billion USD and durable goods expenditures of 150 billion USD.
+예를 들어, 1,000억 달러의 민간 주거 투자와 1,500억 달러의 내구재 지출을 기반으로 식기세척기(`DISH`)의 미래 단위 공장 출하량을 예측해야 한다고 가정합니다.
 
-Supply new values of independent variables and use the function `predict()`.
+독립 변수의 새 값을 제공하고 `predict()` 함수를 사용합니다.
 
 ```{r}
 #| code-fold: false
@@ -675,25 +674,25 @@ predict(mod2, newData, se.fit = TRUE, interval = "prediction")
 ```
 
 
-## Conclusion
+## 결론
 
-We have recalled the standard assumptions about residuals of linear regression models. 
-Remember that there are some other assumptions (e.g., about linear independence of predictors) that must be verified. 
-Refer to the reading materials for a complete list.
+선형 회귀 모형의 잔차에 대한 표준 가정을 상기했습니다.
+검증해야 하는 다른 가정(예: 예측 변수의 선형 독립성에 대한 가정)이 있다는 것을 기억하십시오.
+전체 목록은 읽기 자료를 참조하십시오.
 
-The methods we have used to test the homogeneity of residuals included various residual plots. 
-The normality of residuals can be assessed using histograms or Q-Q plots and statistical tests such as the Shapiro--Wilk normality test.
+잔차의 동질성을 검정하는 데 사용한 방법에는 다양한 잔차 그림이 포함되었습니다.
+잔차의 정규성은 히스토그램이나 Q-Q 그림 및 샤피로-윌크 정규성 검정과 같은 통계적 검정을 사용하여 평가할 수 있습니다.
 
-The use of time series in regression presents additional ways to assess patterns in the regression residuals. 
-A plot of residuals vs. time is assessed for homogeneity and absence of trends. 
-Less obvious patterns, such as autocorrelation, can be tested with parametric and nonparametric tests, such as the Durbin--Watson and runs tests.
+회귀에서 시계열을 사용하면 회귀 잔차의 패턴을 평가하는 추가적인 방법을 제공합니다.
+시간에 대한 잔차 그림은 동질성 및 추세 부재에 대해 평가됩니다.
+자기 상관과 같이 덜 명확한 패턴은 더빈-왓슨 및 런 검정과 같은 매개변수 및 비모수 검정으로 검정할 수 있습니다.
 
-The statistical techniques we will learn aim to model or extract as much information from time series (including the autocorrelation of regression residuals) as possible, such that the remaining series are completely random.
+우리가 배울 통계 기법은 시계열(회귀 잔차의 자기 상관 포함)에서 가능한 한 많은 정보를 모델링하거나 추출하여 나머지 계열이 완전히 무작위가 되도록 하는 것을 목표로 합니다.
 
 
-## Appendix {#sec-diffsign}
+## 부록 {#sec-diffsign}
 
-Alternative versions of the runs test are available, e.g., in the package `randtests`.
+런 검정의 대체 버전은 예를 들어 `randtests` 패키지에서 사용할 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -701,12 +700,12 @@ Alternative versions of the runs test are available, e.g., in the package `randt
 randtests::runs.test(mod2$residuals)
 ```
 
-**Difference sign test**
+**차이 부호 검정**
 
-The logic behind the difference sign test is that in a random process, there will be roughly the same number of ups (positive differences between consecutive values, i.e., $X_t-X_{t-1}$) and downs (negative differences).
+차이 부호 검정의 논리는 무작위 프로세스에서 연속 값 간의 양의 차이(즉, $X_t-X_{t-1}$)와 음의 차이의 수가 거의 같다는 것입니다.
 
-@Brockwell:Davis:2002: "The difference-sign test must be used with caution. A set of observations exhibiting a strong cyclic component will pass the difference-sign test for randomness since roughly half of the observations will be points of increase." 
-We may see (@fig-DishResiduals and @fig-DishResiduals2), it is the case for our residuals, even though we have no cyclic component, but have a rise followed by a decline.
+@Brockwell:Davis:2002: "차이 부호 검정은 주의해서 사용해야 합니다. 강한 주기적 구성 요소를 나타내는 관측치 집합은 관측치의 약 절반이 증가 지점이므로 무작위성에 대한 차이 부호 검정을 통과합니다."
+@fig-DishResiduals 및 @fig-DishResiduals2에서 볼 수 있듯이 주기적 구성 요소가 없더라도 상승 후 하락이 있으므로 우리 잔차의 경우도 마찬가지입니다.
 
 ```{r}
 #| code-fold: false

@@ -12,69 +12,69 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Smoothing, Detrending, and Deseasonalizing
+# 평활화, 추세 제거 및 계절성 제거
 
-The goal of this lecture is to learn a variety of methods used for *trend visualization* (such that make a trend in noisy data more apparent), *trend modeling* (such that can help us to come up with 'an equation' for the trend, which could be further studied or used for interpolation, forecasting, or detrending), and *detrending* (just to remove trend from the series, with or without modeling it). 
-You should be able to choose a method based on the goals of your analysis. 
-We will start with simple and widely used methods that can be further combined into more elaborate algorithms.
+이 강의의 목표는 *추세 시각화*(잡음이 많은 데이터에서 추세를 더 명확하게 만드는), *추세 모델링*(추세에 대한 '방정식'을 도출하는 데 도움이 될 수 있으며, 이는 추가 연구, 보간, 예측 또는 추세 제거에 사용될 수 있음) 및 *추세 제거*(모델링 여부에 관계없이 계열에서 추세를 제거하기만 함)에 사용되는 다양한 방법을 배우는 것입니다.
+분석 목표에 따라 방법을 선택할 수 있어야 합니다.
+더 정교한 알고리즘으로 결합될 수 있는 간단하고 널리 사용되는 방법부터 시작하겠습니다.
 
-**Objectives**
+**학습 목표**
 
-1. Implement smoothing methods often used for trend
-    * visualization (example: moving average, lowess);
-    * modeling (example: exponential smoothing, polynomial smoothing);
-    * removal (example: differencing, however, the above methods also can be used to remove trends).
-1. Accomplish each of the tasks above when handling a time series with cycles (seasonality).
-1. Understand the concepts of trend- and difference-stationary time series.
+1. 추세에 자주 사용되는 평활화 방법을 구현합니다.
+    * 시각화 (예: 이동 평균, 로위스);
+    * 모델링 (예: 지수 평활, 다항식 평활);
+    * 제거 (예: 차분, 그러나 위의 방법도 추세를 제거하는 데 사용할 수 있음).
+1. 주기가 있는 시계열(계절성)을 처리할 때 위의 각 작업을 수행합니다.
+1. 추세 정상 시계열 및 차분 정상 시계열의 개념을 이해합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapter 1.5 in @Brockwell:Davis:2002
-* Chapter 5 in @Kirchgassner:Wolters:2007 (optional)
+* @Brockwell:Davis:2002의 1.5장
+* @Kirchgassner:Wolters:2007의 5장 (선택 사항)
 
 
-## Introduction
+## 소개
 
-Recall the classical decomposition
+고전적 분해를 상기해 봅시다.
 $$
 Y_t = M_t + S_t + \epsilon_t,
 $${#eq-trseas}
-where $M_t$ is a slowly changing function (trend component), $\epsilon_t$ is stationary random noise component, and $S_t$ is the periodic term with the period $m\geqslant 2$ (seasonal component) and scaling factors $\lambda_k > 0$ such that $S_{t+km} = \lambda_kS_t$ for $1 \leqslant t \leqslant m$ and each $k \geqslant 1$. 
-For identification, we need $\sum_{t=1}^m S_t = 0$ and $\mathrm{E}(\epsilon_t)=0$.
+여기서 $M_t$는 느리게 변하는 함수(추세 성분), $\epsilon_t$는 정상 무작위 잡음 성분, $S_t$는 주기 $m\geqslant 2$(계절 성분)과 스케일링 계수 $\lambda_k > 0$을 갖는 주기 항으로, 각 $k \geqslant 1$에 대해 $1 \leqslant t \leqslant m$에 대해 $S_{t+km} = \lambda_kS_t$입니다.
+식별을 위해 $\sum_{t=1}^m S_t = 0$ 및 $\mathrm{E}(\epsilon_t)=0$이 필요합니다.
 
-Our goal is to estimate and extract $M_t$ and $S_t$ with the hope that the residual or noise component $\epsilon_t$ will turn out to be a stationary time series (@sec-movavg--@sec-regressionTime). 
-Alternatively, Box--Jenkins models use difference operators repeatedly to the series $Y_t$ until a stationary time series is obtained (see @sec-differencing on differencing).
+우리의 목표는 잔차 또는 잡음 성분 $\epsilon_t$가 정상 시계열이 될 것이라는 희망을 가지고 $M_t$와 $S_t$를 추정하고 추출하는 것입니다(@sec-movavg--@sec-regressionTime).
+또는 Box-Jenkins 모형은 정상 시계열이 얻어질 때까지 계열 $Y_t$에 차분 연산자를 반복적으로 사용합니다(@sec-differencing의 차분 참조).
 
-The seasonal component is said to have *constant seasonal variation* if the scaling factors satisfy $\lambda_{k} = 1$ for all $k$. 
-In other words, $S_{t+m} = S_{t}$ for all $t$. The constant variation is an assumption of most modeling techniques we will be using in this course. 
-Unfortunately, many real seasonal time series do not have this constancy property and it is necessary to first perform a *variance-stabilizing transformation* to modify the original time series into one with constant variation. 
-To some extent, this is a matter of trial and error, where we work from 'weaker' transformations to 'stronger' transformations as needed. 
-Typically, power transformations are used $Y_{t} \rightarrow Y^{\lambda}_{t}$, where $0 < \lambda < 1$ or, log or even log log transformations, e.g., $Y_{t} \rightarrow \log Y_{t}$.
+계절 성분은 모든 $k$에 대해 스케일링 계수가 $\lambda_{k} = 1$을 만족하는 경우 *일정한 계절 변동*을 갖는다고 합니다.
+즉, 모든 $t$에 대해 $S_{t+m} = S_{t}$입니다. 일정한 변동은 이 과정에서 사용할 대부분의 모델링 기법의 가정입니다.
+불행히도 많은 실제 계절 시계열은 이러한 일정성 속성을 갖지 않으므로 원래 시계열을 일정한 변동을 갖는 시계열로 수정하기 위해 먼저 *분산 안정화 변환*을 수행해야 합니다.
+어느 정도는 시행착오의 문제이며, 필요에 따라 '약한' 변환에서 '강한' 변환으로 작업합니다.
+일반적으로 거듭제곱 변환 $Y_{t} \rightarrow Y^{\lambda}_{t}$($0 < \lambda < 1$) 또는 로그 또는 로그-로그 변환(예: $Y_{t} \rightarrow \log Y_{t}$)이 사용됩니다.
 
-The log transformation of $Y_t$ is convenient when we assume not an additive model as @eq-trseas is, but a multiplicative model as
+$Y_t$의 로그 변환은 @eq-trseas와 같은 가법 모형이 아니라 다음과 같은 곱셈 모형을 가정할 때 편리합니다.
 $$
 Y_t = M_t \cdot S_t \cdot \epsilon_t.
 $${#eq-trseasmult}
-When applying variance-stabilizing log transformation to @eq-trseasmult, we get an additive result:
+@eq-trseasmult에 분산 안정화 로그 변환을 적용하면 가법 결과를 얻습니다.
 $$
 \log Y_t = \log M_t + \log S_t + \log \epsilon_t,
 $${#eq-trseasmultlog}
-which is now similar to @eq-trseas. 
-We will refer to @eq-trseas as *additive seasonality*, and to @eq-trseasmult as *multiplicative seasonality*. 
-Only a few methods can deal with the multiplicative case @eq-trseasmult directly; most methods we consider in this course will require us to apply a transformation as in @eq-trseasmultlog.
+이는 이제 @eq-trseas와 유사합니다.
+@eq-trseas를 *가법 계절성*이라고 하고 @eq-trseasmult를 *곱셈 계절성*이라고 합니다.
+곱셈 경우 @eq-trseasmult를 직접 처리할 수 있는 방법은 거의 없습니다. 이 과정에서 고려하는 대부분의 방법은 @eq-trseasmultlog와 같이 변환을 적용해야 합니다.
 
-In the following sections, we consider methods for the estimation and elimination of $M_t$ (for non-seasonal data, when $S_t = 0$ in the additive case @eq-trseas or $S_t = 1$ in the multiplicative case @eq-trseasmult) and of both $M_t$ and $S_t$ (for seasonal data).
+다음 절에서는 $M_t$(비계절 데이터의 경우 가법 경우 @eq-trseas에서 $S_t = 0$ 또는 곱셈 경우 @eq-trseasmult에서 $S_t = 1$) 및 $M_t$와 $S_t$ 모두(계절 데이터의 경우)의 추정 및 제거 방법을 고려합니다.
 
 
-## Finite moving average smoothing {#sec-movavg}
+## 유한 이동 평균 평활화 {#sec-movavg}
 
-The non-seasonal model with a trend:
+추세가 있는 비계절 모형:
 $$
 Y_t = M_t + \epsilon_t,
 $$
-where $\mathrm{E}(\epsilon_t)=0$ and $t=1,\dots,n$.
+여기서 $\mathrm{E}(\epsilon_t)=0$이고 $t=1,\dots,n$입니다.
 
-Let $q$ be a nonnegative integer ($q \in \mathbb{N}^{+}$) and consider the *two-sided moving average* of the series $Y_t$:
+$q$를 음이 아닌 정수($q \in \mathbb{N}^{+}$)라고 하고 계열 $Y_t$의 *양측 이동 평균*을 고려하십시오.
 $$
 \begin{split}
 W_t &= \frac{1}{2q+1}\sum_{j=-q}^q Y_{t-j}\\
@@ -82,54 +82,54 @@ W_t &= \frac{1}{2q+1}\sum_{j=-q}^q Y_{t-j}\\
 &\approx M_t,
 \end{split}
 $${#eq-movav}
-where $w = 2q+1$ is the size of the moving window. 
-Note that the above approximation is correct if the average value of $\epsilon_{t}$ within each window is close to 0 (important for selecting $q$).
+여기서 $w = 2q+1$은 이동 창의 크기입니다.
+위의 근사는 각 창 내의 $\epsilon_{t}$의 평균값이 0에 가까우면 정확합니다($q$ 선택에 중요함).
 
 ::: {.callout-note icon=false}
 
-## Example: Shampoo plots
+## 예시: 샴푸 그림
 
-@fig-shampoo shows a time series plot of monthly shampoo sales. 
-While the data are monthly, the seasonal component is not visible:
+@fig-shampoo는 월별 샴푸 판매량의 시계열 그림을 보여줍니다.
+데이터는 월별이지만 계절 성분은 보이지 않습니다.
 
-* no strong periodicity in the time series plot;
-* the ACF at seasonal lag (1 year) is not significant.
+* 시계열 그림에 강한 주기성이 없음;
+* 계절 시차(1년)에서의 ACF가 유의하지 않음.
 
-Therefore, we apply @eq-movav treating the shampoo time series as non-seasonal data.
+따라서 샴푸 시계열을 비계절 데이터로 취급하여 @eq-movav를 적용합니다.
 
 ```{r}
 #| code-fold: false
 
-# Get the data from the package fma
+# fma 패키지에서 데이터 가져오기
 shampoo <- fma::shampoo
 shampoo
 ```
 
 ```{r}
 #| label: fig-shampoo
-#| fig-cap: "Monthly shampoo sales over three years and a corresponding sample ACF."
+#| fig-cap: "3년간의 월별 샴푸 판매량과 해당 표본 ACF."
 
 pshampoo <- ggplot2::autoplot(shampoo, col = "grey50") + 
-    xlab("Year") + 
-    ylab("Sales")
+    xlab("연도") +
+    ylab("판매량")
 p2 <- forecast::ggAcf(shampoo) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 pshampoo + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
-There are multiple ways to calculate moving averages in R, and formulas for $W_t$ may vary. 
-If using someone's else functions, remember to read the help files or source code to find out the exact formula in place of @eq-movav. 
-Below are some examples.
+R에서 이동 평균을 계산하는 방법은 여러 가지가 있으며 $W_t$에 대한 공식은 다를 수 있습니다.
+다른 사람의 함수를 사용하는 경우 도움말 파일이나 소스 코드를 읽어 @eq-movav 대신 정확한 공식을 확인하십시오.
+다음은 몇 가지 예입니다.
 
 ::: {.callout-note}
-The package `forecast` is now retired in favor of the package `fable`.
+`forecast` 패키지는 이제 `fable` 패키지를 위해 사용 중단되었습니다.
 :::
 
-For example, `forecast::ma()` has the default option `centre = TRUE`, and the `order` argument represents the window size. 
-Odd `order` and `centre = TRUE` correspond exactly to our definitions in @eq-movav:
+예를 들어, `forecast::ma()`에는 기본 옵션 `centre = TRUE`가 있고 `order` 인수는 창 크기를 나타냅니다.
+홀수 `order`와 `centre = TRUE`는 @eq-movav의 정의와 정확히 일치합니다.
 
 ```{r}
 #| code-fold: false
@@ -137,7 +137,7 @@ Odd `order` and `centre = TRUE` correspond exactly to our definitions in @eq-mov
 forecast::ma(shampoo, order = 5)
 ```
 
-For example, `pracma::movavg()` averages the last `n` data points:
+예를 들어, `pracma::movavg()`는 마지막 `n`개 데이터 포인트의 평균을 계산합니다.
 
 ```{r}
 #| code-fold: false
@@ -145,8 +145,8 @@ For example, `pracma::movavg()` averages the last `n` data points:
 pracma::movavg(shampoo, n = 5)
 ```
 
-The base-R function `stats::filter()` can also be used. 
-Its odd window size and `sides = 2` correspond to our definitions in @eq-movav:
+기본 R 함수 `stats::filter()`도 사용할 수 있습니다.
+홀수 창 크기와 `sides = 2`는 @eq-movav의 정의와 일치합니다.
 
 ```{r}
 #| code-fold: false
@@ -155,7 +155,7 @@ window_size <- 5
 stats::filter(shampoo, filter = 1/rep(window_size, window_size), sides = 2)
 ```
 
-The `sides = 1` in `stats::filter()` corresponds to the `pracma::movavg()` results above:
+`stats::filter()`의 `sides = 1`은 위의 `pracma::movavg()` 결과와 일치합니다.
 
 ```{r}
 #| code-fold: false
@@ -163,15 +163,15 @@ The `sides = 1` in `stats::filter()` corresponds to the `pracma::movavg()` resul
 stats::filter(shampoo, filter = 1/rep(window_size, window_size), sides = 1)
 ```
 
-See @fig-shampoo-movavg and @fig-shampoo-movavg2 for the effects of the window size.
+창 크기의 효과는 @fig-shampoo-movavg 및 @fig-shampoo-movavg2를 참조하십시오.
 
 ::: {.callout-note icon=false}
 
-## Example: Shampoo moving average smoothing
+## 예시: 샴푸 이동 평균 평활화
 
 ```{r}
 #| label: fig-shampoo-movavg
-#| fig-cap: "Shampoo sales over three years smoothed with *centered* moving average filters, where the window size is $w = 2q+1$."
+#| fig-cap: "창 크기가 $w = 2q+1$인 *중심* 이동 평균 필터로 평활화된 3년간의 샴푸 판매량."
 #| fig-height: 7
 
 ps <- lapply(c(1, 2, 3, 5), function(q){
@@ -179,7 +179,7 @@ ps <- lapply(c(1, 2, 3, 5), function(q){
     Wt <- forecast::ma(shampoo, order = w)
     pshampoo + 
         geom_line(aes(y = Wt), col = 4, lwd = 1.5) + 
-        ggtitle(paste0("q = ", q, " (window = ", w, ")"))
+        ggtitle(paste0("q = ", q, " (창 = ", w, ")"))
 })
 wrap_plots(ps, ncol = 2) +
     plot_annotation(tag_levels = 'A')
@@ -187,7 +187,7 @@ wrap_plots(ps, ncol = 2) +
 
 ```{r}
 #| label: fig-shampoo-movavg2
-#| fig-cap: "Shampoo sales over three years smoothed with *non-centered* moving average filters, where the window size is $w = 2q+1$."
+#| fig-cap: "창 크기가 $w = 2q+1$인 *비중심* 이동 평균 필터로 평활화된 3년간의 샴푸 판매량."
 #| fig-height: 7
 
 ps <- lapply(c(1, 2, 3, 5), function(q){
@@ -195,7 +195,7 @@ ps <- lapply(c(1, 2, 3, 5), function(q){
     Wt <- stats::filter(shampoo, filter = 1/rep(w, w), sides = 1)
     pshampoo + 
         geom_line(aes(y = Wt), col = 4, lwd = 1.5) + 
-        ggtitle(paste0("q = ", q, " (window = ", w, ")"))
+        ggtitle(paste0("q = ", q, " (창 = ", w, ")"))
 })
 wrap_plots(ps, ncol = 2) +
     plot_annotation(tag_levels = 'A')
@@ -203,61 +203,61 @@ wrap_plots(ps, ncol = 2) +
 :::
 
 
-### Moving average smoothing for seasonal data {#sec-movavgSeas}
+### 계절 데이터에 대한 이동 평균 평활화 {#sec-movavgSeas}
 
-Come back to the trend-seasonal model @eq-trseas:
+추세-계절 모형 @eq-trseas로 돌아가 봅시다.
 $$
 Y_t = M_t + S_t + \epsilon_t.
 $$
 
-We apply the following steps for estimating seasonality and trend:
+계절성 및 추세 추정을 위해 다음 단계를 적용합니다.
 
-1. Apply a moving average filter specially chosen to eliminate the seasonal component and dampen the noise -- get $\hat{M}_t$. 
-Remember that the sum of $S_t$ within each period is 0. 
-Hence, to smooth out the seasonal component (and noise) and get an estimate of just $M_t$, we will use a moving window $w$ sized as the seasonal period $m$ (more generally, $w = km$, where $k\in \mathbb{N}^{+}$, if a greater smoothness is desired). 
-It will often lead to the even window size $w$. 
-For even $w$, @eq-movav is modified as follows (we now use $km + 1$ elements so the window is still centered, but the elements on the ends receive half the weight):
+1. 계절 성분을 제거하고 잡음을 약화시키기 위해 특별히 선택된 이동 평균 필터를 적용하여 $\hat{M}_t$를 얻습니다.
+각 기간 내 $S_t$의 합은 0임을 기억하십시오.
+따라서 계절 성분(및 잡음)을 평활화하고 $M_t$만의 추정치를 얻기 위해 계절 기간 $m$과 같은 크기의 이동 창 $w$를 사용합니다(더 일반적으로, 더 큰 평활도가 필요한 경우 $w = km$, 여기서 $k\in \mathbb{N}^{+}$).
+이는 종종 짝수 창 크기 $w$로 이어집니다.
+짝수 $w$의 경우 @eq-movav는 다음과 같이 수정됩니다(이제 $km + 1$개 요소를 사용하여 창이 여전히 중심에 있지만 끝의 요소는 절반의 가중치를 받음).
 $$
 \hat{M}_t = \frac{0.5Y_{t-km/2} + Y_{t-km/2 + 1} +\dots+Y_{t+km/2-1} + 0.5Y_{t+km/2}}{km}.
 $${#eq-movavEven}
-1. Use $Y_t - \hat{M}_t$ to estimate the seasonal component -- get $\hat{S}_t$. 
-If needed, correct the estimates, to sum up to 0 in each period. 
-Let $\hat{S}^*_t$ be the corrected values.
-1. Use deseasonalized data $Y_t - \hat{S}^*_t$ to re-estimate the trend. 
-Let $\hat{M}^*_t$ be the corrected trend estimate.
-1. The estimated random noise is then: $\hat{\epsilon}_t = Y_t - \hat{M}^*_t - \hat{S}^*_t$.
+1. $Y_t - \hat{M}_t$를 사용하여 계절 성분을 추정하여 $\hat{S}_t$를 얻습니다.
+필요한 경우 각 기간에서 합계가 0이 되도록 추정치를 수정합니다.
+$\hat{S}^*_t$를 수정된 값이라고 합시다.
+1. 계절성이 제거된 데이터 $Y_t - \hat{S}^*_t$를 사용하여 추세를 다시 추정합니다.
+$\hat{M}^*_t$를 수정된 추세 추정치라고 합시다.
+1. 추정된 무작위 잡음은 다음과 같습니다. $\hat{\epsilon}_t = Y_t - \hat{M}^*_t - \hat{S}^*_t$.
 
 ::: {.callout-note}
-For the multiplicative case, replace subtractions with *divisions* and let the *product* of $\hat{S}^*_t$ be 1 within each seasonal period.
+곱셈의 경우 뺄셈을 *나눗셈*으로 바꾸고 각 계절 기간 내에서 $\hat{S}^*_t$의 *곱*이 1이 되도록 합니다.
 :::
 
-The above algorithm is implemented in `stats::decompose()`, but its main disadvantage is in the centered moving average filter used to estimate $M_t$ that does not produce smoothed values for the most recent observations. 
-We can elaborate this algorithm, first, by using different estimators for $M_t$; second, by also replacing estimators for $S_t$ (e.g., see the next section).
+위의 알고리즘은 `stats::decompose()`에 구현되어 있지만 주요 단점은 $M_t$를 추정하는 데 사용되는 중심 이동 평균 필터가 가장 최근 관측치에 대한 평활화된 값을 생성하지 않는다는 것입니다.
+먼저 $M_t$에 대해 다른 추정량을 사용하여 이 알고리즘을 정교화할 수 있습니다. 둘째, $S_t$에 대한 추정량도 바꿉니다(예: 다음 절 참조).
 
 ::: {.callout-note icon=false}
 
-## Example: Secchi depth automatic (simple moving average-based) decomposition
+## 예시: 세키 깊이 자동 (단순 이동 평균 기반) 분해
 
-Consider monthly data of Secchi disk depth measured at station CB1.1 in Chesapeake Bay (@fig-Secchi), with the decomposition in @fig-SecchiDecompose.
+체서피크 만의 CB1.1 관측소에서 측정된 세키 원반 깊이의 월별 데이터를 고려하십시오(@fig-Secchi). @fig-SecchiDecompose의 분해를 참조하십시오.
 
 ```{r}
 #| label: fig-Secchi
-#| fig-cap: "Monthly average Secchi disk depth at station CB1.1 and its ACF."
+#| fig-cap: "CB1.1 관측소의 월평균 세키 원반 깊이와 ACF."
 
 load("data/Secchi_CB1.1.RData")
 pSecchi <- ggplot2::autoplot(Secchi, col = "grey50") + 
-    xlab("Year") + 
-    ylab("Secchi depth (m)")
+    xlab("연도") +
+    ylab("세키 깊이 (m)")
 p2 <- forecast::ggAcf(Secchi) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 pSecchi + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
 ```{r}
 #| label: fig-SecchiDecompose
-#| fig-cap: "Trend-seasonal decomposition of monthly average Secchi disk depth at station CB1.1."
+#| fig-cap: "CB1.1 관측소의 월평균 세키 원반 깊이의 추세-계절 분해."
 #| fig-height: 7
 
 ggplot2::autoplot(stats::decompose(Secchi))
@@ -266,10 +266,10 @@ ggplot2::autoplot(stats::decompose(Secchi))
 
 ::: {.callout-note icon=false}
 
-## Example: Secchi depth manual simple moving average smoothing
+## 예시: 세키 깊이 수동 단순 이동 평균 평활화
 
-To replicate the behavior of the function `stats::decompose()` or tune the outputs, use the following code. 
-For example, @fig-SecchiDecompose shows a wiggly trend that we might want to smooth more, using a bigger window, such as 24 months instead of 12 months.
+`stats::decompose()` 함수의 동작을 복제하거나 출력을 조정하려면 다음 코드를 사용하십시오.
+예를 들어, @fig-SecchiDecompose는 12개월 대신 24개월과 같은 더 큰 창을 사용하여 더 평활화하고 싶을 수 있는 구불구불한 추세를 보여줍니다.
 
 ```{r}
 #| code-fold: false
@@ -278,81 +278,81 @@ Yt <- Secchi
 t <- as.vector(time(Yt))
 month <- as.factor(cycle(Yt))
 
-# 1. Initial trend estimate
+# 1. 초기 추세 추정
 window_size = 24
 Mt <- stats::filter(Yt, 
                     filter = 1/c(2*window_size, rep(window_size, window_size - 1), 
                                  2*window_size), 
                     sides = 2)
 
-# 2. Estimate of the seasonality, corrected to sum up to 0
+# 2. 계절성 추정, 합계가 0이 되도록 수정됨
 St <- tapply(Yt - Mt, month, mean, na.rm = TRUE)
 St
 sum(St)
 St_star <- St - sum(St)/12
 sum(St_star)
 
-# 3. Refined trend estimate
+# 3. 정제된 추세 추정
 Mt_star <- stats::filter(Yt - St_star[month], 
                     filter = 1/c(2*window_size, rep(window_size, window_size - 1), 
                                  2*window_size), 
                     sides = 2)
 
-# 4. Noise
+# 4. 잡음
 et <- Yt - Mt_star - St_star[month]
 
-# Convert back to ts format for plotting
+# 그림을 그리기 위해 ts 형식으로 다시 변환
 et <- ts(as.vector(et), start = start(Secchi), frequency = 12)
 ```
 
-See @fig-SecchiDeseasMA for the results.
+결과는 @fig-SecchiDeseasMA를 참조하십시오.
 
 ```{r}
 #| label: fig-SecchiDeseasMA
-#| fig-cap: "Detrending using simple moving average and deseasonalizing the Secchi depth data."
+#| fig-cap: "단순 이동 평균을 사용하여 추세를 제거하고 세키 깊이 데이터의 계절성을 제거합니다."
 #| fig-height: 7
 
 p1 <- pSecchi + 
     geom_line(aes(y = Mt_star), col = 4, lwd = 1.5) + 
-    ggtitle("Trend estimate: Mt_star")
+    ggtitle("추세 추정: Mt_star")
 p2 <- pSecchi + 
     geom_line(aes(y = Mt_star + St_star[month]), col = 4, lwd = 1.5) + 
-    ggtitle("Final trend-cycle: Mt_star + St_star")
+    ggtitle("최종 추세-주기: Mt_star + St_star")
 p3 <- ggplot2::autoplot(et) + 
-    xlab("Year") + 
-    ggtitle("Residuals: et")
+    xlab("연도") +
+    ggtitle("잔차: et")
 p4 <- forecast::ggAcf(et) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-## Lowess smoothing {#sec-lowess}
+## 로위스 평활화 {#sec-lowess}
 
-One of the alternatives for estimating trends $M_t$ is *locally weighted regression* (shortened as 'lowess' or 'loess') [@Cleveland:1979]. 
-We can apply lowess as a regression of $Y_t$ on time, for example, using the algorithm outlined by @Berk:2016:
+$M_t$ 추정을 위한 대안 중 하나는 *국소 가중 회귀*(줄여서 'lowess' 또는 'loess')입니다[@Cleveland:1979].
+예를 들어, @Berk:2016에서 설명한 알고리즘을 사용하여 $Y_t$를 시간에 대한 회귀로 로위스를 적용할 수 있습니다.
 
-1. Choose the smoothing parameter such as bandwidth, $f$, which is a proportion between 0 and 1.
-1. Choose a point $t_0$ and its $w = f n$ nearest points on the time axis.
-1. For these $w$ nearest neighbor points, compute a weighted least squares regression line for $Y_t$ on $t$. 
-The coefficients $\boldsymbol{\beta}$ of such regression are estimated by minimizing the residual sum of squares
+1. 대역폭 $f$와 같은 평활화 매개변수를 선택합니다. 이는 0과 1 사이의 비율입니다.
+1. 점 $t_0$와 시간 축에서 가장 가까운 $w = f n$개의 점을 선택합니다.
+1. 이 $w$개의 가장 가까운 이웃 점에 대해 $Y_t$를 $t$에 대한 가중 최소 제곱 회귀선을 계산합니다.
+이러한 회귀의 계수 $\boldsymbol{\beta}$는 잔차 제곱합을 최소화하여 추정됩니다.
 $$
 \text{RSS}^*(\boldsymbol{\beta}) = (\boldsymbol{Y}^* - \boldsymbol{X}^* \boldsymbol{\beta})^{\top} \boldsymbol{W}^* (\boldsymbol{Y}^* - \boldsymbol{X}^* \boldsymbol{\beta}),
 $$
-where the asterisk indicates that only the observations in the window are included. 
-The regressor matrix $\boldsymbol{X}^*$ can contain polynomial terms of time, $t$. 
-The $\boldsymbol{W}^*$ is a diagonal matrix conforming to $\boldsymbol{X}^*$, with diagonal elements being a function of distance from $t_0$ (observations closer to $t_0$ receive higher weights).
-1. Calculate the fitted value $\tilde{Y}_t$ for that single $t_0$.
-1. Repeat Steps 2--4 for each $t_0 = 1,\dots,n$.
+여기서 별표는 창의 관측치만 포함됨을 나타냅니다.
+회귀 변수 행렬 $\boldsymbol{X}^*$는 시간 $t$의 다항식 항을 포함할 수 있습니다.
+$\boldsymbol{W}^*$는 $\boldsymbol{X}^*$에 부합하는 대각 행렬이며, 대각선 요소는 $t_0$로부터의 거리 함수입니다($t_0$에 가까운 관측치는 더 높은 가중치를 받음).
+1. 해당 단일 $t_0$에 대한 적합값 $\tilde{Y}_t$를 계산합니다.
+1. 각 $t_0 = 1,\dots,n$에 대해 2-4단계를 반복합니다.
 
-By selecting large bandwidth $f$ in the lowess algorithm, we can obtain greater smoothing (see @fig-lowess).
+로위스 알고리즘에서 큰 대역폭 $f$를 선택하면 더 큰 평활도를 얻을 수 있습니다(@fig-lowess 참조).
 
 ```{r}
 #| label: fig-lowess
-#| fig-cap: "A lowess illustration, adapted from @Berk:2016."
+#| fig-cap: "@Berk:2016에서 각색한 로위스 그림."
 #| fig-height: 7
 
 data(WWWusage)
@@ -366,20 +366,20 @@ wrap_plots(ps, ncol = 2) +
 ```
 
 ::: {.callout-note}
-The function `ggplot2::geom_smooth()` has the default setting `se = TRUE` that produces a confidence interval around the smooth. 
-In time series applications, autocorrelated residuals may lead to underestimated standard errors and incorrect (typically, too narrow) confidence intervals. 
-Hence, we set `se = FALSE`. 
-For testing the significance of the identified trends, see lectures on trend testing (detection).
+함수 `ggplot2::geom_smooth()`에는 평활 주위에 신뢰 구간을 생성하는 기본 설정 `se = TRUE`가 있습니다.
+시계열 응용 분야에서는 자기 상관 잔차가 표준 오차를 과소평가하고 잘못된(일반적으로 너무 좁은) 신뢰 구간을 초래할 수 있습니다.
+따라서 `se = FALSE`로 설정합니다.
+식별된 추세의 유의성 검정에 대해서는 추세 검정(탐지)에 대한 강의를 참조하십시오.
 :::
 
 
-### Lowess smoothing for seasonal data
+### 계절 데이터에 대한 로위스 평활화
 
-Now use the Secchi time series (@fig-Secchi) and implement the procedure of detrending and deseasonalizing from @sec-movavgSeas, but replace the simple moving average estimates of $M_t$ with lowess estimates.
+이제 세키 시계열(@fig-Secchi)을 사용하고 @sec-movavgSeas의 추세 제거 및 계절성 제거 절차를 구현하되, $M_t$의 단순 이동 평균 추정치를 로위스 추정치로 바꿉니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Secchi depth lowess-based decomposition
+## 예시: 세키 깊이 로위스 기반 분해
 
 ```{r}
 #| code-fold: false
@@ -388,62 +388,62 @@ Yt <- Secchi
 t <- as.vector(time(Yt))
 month <- as.factor(cycle(Yt))
 
-# 1. Initial trend estimate
+# 1. 초기 추세 추정
 Mt <- loess(Yt ~ t, span = 0.25)$fitted
 
-# 2. Estimate of the seasonality, corrected to sum up to 0
+# 2. 계절성 추정, 합계가 0이 되도록 수정됨
 St <- tapply(Yt - Mt, month, mean)
 St
 sum(St)
 St_star <- St - sum(St)/12
 sum(St_star)
 
-# 3. Refined trend estimate
+# 3. 정제된 추세 추정
 Mt_star <- loess((Yt - St_star[month]) ~ t, span = 0.25)$fitted
 
-# 4. Noise
+# 4. 잡음
 et <- Yt - Mt_star - St_star[month]
 
-# Convert back to ts format for plotting
+# 그림을 그리기 위해 ts 형식으로 다시 변환
 et <- ts(as.vector(et), start = start(Secchi), frequency = 12)
 ```
 
-See @fig-SecchiDeseas for the results.
+결과는 @fig-SecchiDeseas를 참조하십시오.
 
 ```{r}
 #| label: fig-SecchiDeseas
-#| fig-cap: "Detrending using lowess and deseasonalizing the Secchi depth data."
+#| fig-cap: "로위스를 사용하여 추세를 제거하고 세키 깊이 데이터의 계절성을 제거합니다."
 #| fig-height: 7
 
 p1 <- pSecchi + 
     geom_line(aes(y = Mt_star), col = 4, lwd = 1.5) + 
-    ggtitle("Trend estimate: Mt_star")
+    ggtitle("추세 추정: Mt_star")
 p2 <- pSecchi + 
     geom_line(aes(y = Mt_star + St_star[month]), col = 4, lwd = 1.5) + 
-    ggtitle("Final trend-cycle: Mt_star + St_star")
+    ggtitle("최종 추세-주기: Mt_star + St_star")
 p3 <- ggplot2::autoplot(et) + 
-    xlab("Year") + 
-    ggtitle("Residuals: et")
+    xlab("연도") +
+    ggtitle("잔차: et")
 p4 <- forecast::ggAcf(et) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
 
-In @fig-SecchiDeseas2, we use the decomposition function `stl()` forced to have approximately the same values as we used in the steps above and as shown in @fig-SecchiDeseas. 
-Hence, @fig-SecchiDeseas and @fig-SecchiDeseas2 are similar. 
-However, the function `stl()` is more flexible -- it also automatically smooths the seasonal component (across Januaries, across Februaries, etc.) -- and can provide finer estimates (see @fig-SecchiDeseas3).
+@fig-SecchiDeseas2에서는 위 단계와 @fig-SecchiDeseas에서 사용한 값과 거의 동일한 값을 갖도록 강제된 분해 함수 `stl()`을 사용합니다.
+따라서 @fig-SecchiDeseas와 @fig-SecchiDeseas2는 유사합니다.
+그러나 함수 `stl()`은 더 유연합니다. 또한 계절 성분을 자동으로 평활화하고(1월 전체, 2월 전체 등) 더 미세한 추정치를 제공할 수 있습니다(@fig-SecchiDeseas3 참조).
 
 ```{r}
 #| label: fig-SecchiDeseas2
-#| fig-cap: "Detrending and deseasonalizing the Secchi depth data using lowess within the function `stl()` forced to behave similarly to @fig-SecchiDeseas."
+#| fig-cap: "@fig-SecchiDeseas와 유사하게 동작하도록 강제된 함수 `stl()` 내에서 로위스를 사용하여 세키 깊이 데이터의 추세를 제거하고 계절성을 제거합니다."
 #| fig-height: 7
 
-# Span we used above (the fraction)
+# 위에서 사용한 스팬 (분수)
 span = 0.25
 
-# Window size in number of lags (observations)
+# 시차(관측치) 수의 창 크기
 w <- span * length(Secchi)/2 
 D <- stl(Yt, s.window = "periodic", t.window = w)
 Mt_star <- D$time.series[,"trend"]
@@ -452,23 +452,23 @@ et <- D$time.series[,"remainder"]
 
 p1 <- pSecchi +
     geom_line(aes(y = Mt_star), col = 4, lwd = 1.5) + 
-    ggtitle("Trend estimate: Mt_star")
+    ggtitle("추세 추정: Mt_star")
 p2 <- pSecchi + 
     geom_line(aes(y = Mt_star + St_star), col = 4, lwd = 1.5) + 
-    ggtitle("Final trend-cycle: Mt_star + St_star")
+    ggtitle("최종 추세-주기: Mt_star + St_star")
 p3 <- ggplot2::autoplot(et) + 
-    xlab("Year") + 
-    ggtitle("Residuals: et")
+    xlab("연도") +
+    ggtitle("잔차: et")
 p4 <- forecast::ggAcf(et) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
 
 ```{r}
 #| label: fig-SecchiDeseas3
-#| fig-cap: "Detrending and deseasonalizing the Secchi depth data using lowess within the function `stl()` with default settings."
+#| fig-cap: "기본 설정을 사용하는 함수 `stl()` 내에서 로위스를 사용하여 세키 깊이 데이터의 추세를 제거하고 계절성을 제거합니다."
 #| fig-height: 7
 
 D <- stl(Yt, s.window = 24, s.degree = 1, t.window = w)
@@ -478,80 +478,80 @@ et <- D$time.series[,"remainder"]
 
 p1 <- pSecchi +
     geom_line(aes(y = Mt_star), col = 4, lwd = 1.5) + 
-    ggtitle("Trend estimate: Mt_star")
+    ggtitle("추세 추정: Mt_star")
 p2 <- pSecchi + 
     geom_line(aes(y = Mt_star + St_star), col = 4, lwd = 1.5) + 
-    ggtitle("Final trend-cycle: Mt_star + St_star")
+    ggtitle("최종 추세-주기: Mt_star + St_star")
 p3 <- ggplot2::autoplot(et) + 
-    xlab("Year") + 
-    ggtitle("Residuals: et")
+    xlab("연도") +
+    ggtitle("잔차: et")
 p4 <- forecast::ggAcf(et) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-## Exponential smoothing
+## 지수 평활
 
-Exponential smoothing (ES) is a successful forecasting technique. 
-It turns out that ES can be modified to be used effectively for time series with
+지수 평활(ES)은 성공적인 예측 기법입니다.
+ES는 다음과 같은 시계열에 효과적으로 사용되도록 수정될 수 있음이 밝혀졌습니다.
 
-* slowly drifting trend (double exponential smoothing);
-* trends (Holt's method);
-* seasonal patterns;
-* combination of trend and seasonality (Holt--Winters method).
+* 느리게 변동하는 추세 (이중 지수 평활);
+* 추세 (홀트 방법);
+* 계절 패턴;
+* 추세와 계절성의 조합 (홀트-윈터스 방법).
 
-ES is easy to adjust for past errors and easy to prepare follow-on forecasts. 
-ES is ideal for situations where many forecasts must be prepared. 
-Several different functional forms of ES are used depending on the presence of trend or cyclical variations.
+ES는 과거 오차를 쉽게 조정하고 후속 예측을 쉽게 준비할 수 있습니다.
+ES는 많은 예측을 준비해야 하는 상황에 이상적입니다.
+추세 또는 주기적 변동의 존재 여부에 따라 여러 가지 다른 ES 함수 형식이 사용됩니다.
 
-In short, an ES is an averaging technique that uses unequal weights while the weights applied to past observations decline in an exponential manner.
+간단히 말해서 ES는 불균등 가중치를 사용하는 평균화 기법이며, 과거 관측치에 적용되는 가중치는 지수적으로 감소합니다.
 
-**Single exponential smoothing** calculates the smoothed series as a damping coefficient $\alpha$ ($\alpha \in [0, 1]$) times the actual series plus $1 - \alpha$ times the lagged value of the smoothed series. 
-For the model
+**단일 지수 평활**은 평활화된 계열을 감쇠 계수 $\alpha$($\alpha \in [0, 1]$) 곱하기 실제 계열 더하기 $1 - \alpha$ 곱하기 평활화된 계열의 시차 값으로 계산합니다.
+모형
 $$
 Y_{t} = M_t + \epsilon_{t},
 $$
-the updating equation is
+에 대한 업데이트 방정식은 다음과 같습니다.
 $$
 \begin{split}
 \hat{M}_1 &= Y_1\\
 \hat{M}_t &= \alpha Y_t + (1 - \alpha) \hat{M}_{t - 1}
 \end{split}
 $$
-and the forecast is
+그리고 예측은 다음과 같습니다.
 $$
 \hat{Y}_{t+1} = \hat{M}_t.
 $$
 
-An exponential smoothing over an already smoothed time series is called *double exponential smoothing*. 
-In some cases, it might be necessary to extend it even to a *triple exponential smoothing*.
+이미 평활화된 시계열에 대한 지수 평활을 *이중 지수 평활*이라고 합니다.
+경우에 따라 *삼중 지수 평활*로 확장해야 할 수도 있습니다.
 
-**Holt's linear exponential smoothing** Suppose that the series $Y_t$ is non-seasonal but displays a trend. 
-Now we need to estimate both the current mean (a.k.a. *level*) and the current trend.
+**홀트의 선형 지수 평활** 계열 $Y_t$가 비계절적이지만 추세를 나타낸다고 가정합니다.
+이제 현재 평균(일명 *수준*)과 현재 추세를 모두 추정해야 합니다.
 
-The updating equations express ideas similar to those for exponential smoothing. 
-However, now we have two smoothing parameters, $\alpha$ and $\beta$ ($\alpha \in [0, 1]$; $\beta \in [0, 1]$).
+업데이트 방정식은 지수 평활에 대한 아이디어와 유사한 아이디어를 표현합니다.
+그러나 이제 두 개의 평활화 매개변수 $\alpha$와 $\beta$($\alpha \in [0, 1]$; $\beta \in [0, 1]$)가 있습니다.
 
-The updating equations are
+업데이트 방정식은 다음과 같습니다.
 $$
 a_{t} = \alpha Y_{t} + \left( 1- \alpha \right) \left( a_{t - 1} + b_{t - 1} \right)
 $$
-for the mean and
+평균에 대해, 그리고
 $$
 b_{t} = \beta \left( a_{t} - a_{t-1} \right) + \left( 1 - \beta \right) b_{t-1}
 $$
-for the trend.
+추세에 대해.
 
-Then the forecasting for $k$ steps into the future is
+그런 다음 미래 $k$ 단계에 대한 예측은 다음과 같습니다.
 $$
 \hat{Y}_{t+k} = a_{t} + kb_{t}.
 $$
 
-Usually, the initial (starting) values are
+일반적으로 초기(시작) 값은 다음과 같습니다.
 $$
 \begin{split}
 a_{1} & = Y_{2}, \\
@@ -561,13 +561,13 @@ $$
 
 ::: {.callout-note icon=false}
 
-## Example: Shampoo exponential smoothing
+## 예시: 샴푸 지수 평활
 
-See an example in @fig-shampoo-ses.
+@fig-shampoo-ses의 예를 참조하십시오.
 
 ```{r}
 #| label: fig-shampoo-ses
-#| fig-cap: "Shampoo sales over three years smoothed with different exponential smoothing filters."
+#| fig-cap: "다양한 지수 평활 필터로 평활화된 3년간의 샴푸 판매량."
 
 clrs <- c("0.3" = 4, "0.7" = 2)
 m1 <- HoltWinters(shampoo, alpha = 0.3, beta = FALSE, gamma = FALSE)
@@ -575,7 +575,7 @@ m2 <- HoltWinters(shampoo, alpha = 0.7, beta = FALSE, gamma = FALSE)
 p1 <- pshampoo + 
     geom_line(data = fitted(m1)[,1], aes(col = "0.3"), lwd = 1.5) + 
     geom_line(data = fitted(m2)[,1], aes(col = "0.7"), lwd = 1.5) +
-    ggtitle("Simple exponential smoothing") +
+    ggtitle("단순 지수 평활") +
     labs(color = "\u03b1") +
     scale_color_manual(values = clrs)
 clrs <- c("(0.3, 0.3)" = 4, "(0.7, 0.7)" = 2)
@@ -584,7 +584,7 @@ m2 <- HoltWinters(shampoo, alpha = 0.7, beta = 0.7, gamma = FALSE)
 p2 <- pshampoo + 
     geom_line(data = fitted(m1)[,1], aes(col = "(0.3, 0.3)"), lwd = 1.5) + 
     geom_line(data = fitted(m2)[,1], aes(col = "(0.7, 0.7)"), lwd = 1.5) +
-    ggtitle("Holt's method") +
+    ggtitle("홀트 방법") +
     labs(color = "(\u03b1, \u03b2)") +
     scale_color_manual(values = clrs)
 p1 + p2 +
@@ -593,24 +593,24 @@ p1 + p2 +
 :::
 
 
-### Exponential smoothing for seasonal data
+### 계절 데이터에 대한 지수 평활
 
-**Multiplicative Holt--Winters procedure** 
+**곱셈 홀트-윈터스 절차**
 
-Now in addition to the Holt parameters, suppose that the series exhibits multiplicative seasonality and let $S_{t}$ be the multiplicative seasonal factor at the time $t$.
+이제 홀트 매개변수 외에 계열이 곱셈 계절성을 나타낸다고 가정하고 $S_{t}$를 시간 $t$에서의 곱셈 계절 요인이라고 합시다.
 
-Suppose also that there are $m$ observations in one period (in a year). 
-For example, $m = 4$ for quarterly data, and $m = 12$ for monthly data.
+또한 한 기간(1년)에 $m$개의 관측치가 있다고 가정합니다.
+예를 들어 분기별 데이터의 경우 $m = 4$이고 월별 데이터의 경우 $m = 12$입니다.
 
-In some time series, seasonal variation is so strong it obscures any trends or other cycles, which are important for our understanding of the observed process. 
-Holt--Winters smoothing method can remove seasonality and makes long-term fluctuations in the series stand out more clearly.
+일부 시계열에서는 계절 변동이 너무 강해서 관찰된 과정에 대한 이해에 중요한 추세나 기타 주기를 가립니다.
+홀트-윈터스 평활 방법은 계절성을 제거하고 계열의 장기 변동을 더 명확하게 드러낼 수 있습니다.
 
-A simple way of detecting a trend in seasonal data is to take averages over a certain period. 
-If these averages change with time we can say that there is evidence of a trend in the series.
+계절 데이터에서 추세를 감지하는 간단한 방법은 특정 기간 동안 평균을 취하는 것입니다.
+이러한 평균이 시간에 따라 변하면 계열에 추세의 증거가 있다고 말할 수 있습니다.
 
-We now use three smoothing parameters: $\alpha$, $\beta$, and $\gamma$ ($\alpha \in [0, 1]$; $\beta \in [0, 1]$; $\gamma \in [0, 1]$).
+이제 세 가지 평활화 매개변수 $\alpha$, $\beta$ 및 $\gamma$($\alpha \in [0, 1]$; $\beta \in [0, 1]$; $\gamma \in [0, 1]$)를 사용합니다.
 
-The updating equations for the level ($a_t$), local trend ($b_t$), and seasonal factor ($S_t$) are:
+수준($a_t$), 국소 추세($b_t$) 및 계절 요인($S_t$)에 대한 업데이트 방정식은 다음과 같습니다.
 $$
 \begin{split}
 a_{t} & = \alpha Y_{t} / S_{t - m} + (1 - \alpha) ( a_{t - 1} + b_{t - 1}), \\
@@ -619,19 +619,19 @@ S_{t} & = \gamma Y_{t} / a_{t} + (1 - \gamma) S_{t - m}.
 \end{split}
 $$
 
-Then the forecasting for $k$ steps into the future is
+그런 다음 미래 $k$ 단계에 대한 예측은 다음과 같습니다.
 $$
 \hat{Y}_{t+k} = (a_{t} + kb_{t}) S_{t+k-m},
 $$
-where $k = 1, 2, \dots, m$.
+여기서 $k = 1, 2, \dots, m$입니다.
 
-To obtain starting values, one may use an average over the first few periods (years) of the data.
+시작 값을 얻으려면 데이터의 처음 몇 기간(년) 동안의 평균을 사용할 수 있습니다.
 
-The smoothing parameters $\alpha$, $\beta$ and $\gamma$ are estimated by minimizing the sum of the squared one-step prediction errors.
+평활화 매개변수 $\alpha$, $\beta$ 및 $\gamma$는 제곱된 1단계 예측 오차의 합을 최소화하여 추정됩니다.
 
-**Additive Holt--Winters procedure**
+**가법 홀트-윈터스 절차**
 
-The updating equations are
+업데이트 방정식은 다음과 같습니다.
 $$
 \begin{split}
 a_{t} & = \alpha (Y_{t} - S_{t - m}) + (1 - \alpha) (a_{t - 1} + b_{t - 1}), \\
@@ -640,35 +640,35 @@ S_{t} & = \gamma (Y_{t} - a_{t}) + (1 - \gamma) S_{t - m}.
 \end{split}
 $$
 
-Then the forecasting for $k$ steps into the future is
+그런 다음 미래 $k$ 단계에 대한 예측은 다음과 같습니다.
 $$
 \hat{Y}_{t+k} = a_{t} + kb_{t} + S_{t + k - m},
 $$
-where $k = 1, 2, \dots, m$.
+여기서 $k = 1, 2, \dots, m$입니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Airline passengers non-seasonal and seasonal exponential smoothing
+## 예시: 항공 승객 비계절 및 계절 지수 평활
 
-Monthly totals of international airline passengers, 1949--1960 (see @fig-airpassangers). 
-This is a classical example in time series analysis.
-Note that the seasonal variability increases with the increasing mean, hence, we deal with the multiplicative seasonality.
+월별 국제 항공 승객 총계, 1949-1960년(@fig-airpassangers 참조).
+이는 시계열 분석의 고전적인 예입니다.
+계절 변동성이 평균 증가와 함께 증가하므로 곱셈 계절성을 다룹니다.
 
 ```{r}
 #| label: fig-airpassangers
-#| fig-cap: "Monthly `AirPassengers` data and a corresponding sample ACF."
+#| fig-cap: "월별 `AirPassengers` 데이터와 해당 표본 ACF."
 
 pAirPassengers <- ggplot2::autoplot(AirPassengers, col = "grey50") + 
-    xlab("Year") + 
-    ylab("Airline passengers (thousand)")
+    xlab("연도") +
+    ylab("항공 승객 (천 명)")
 p2 <- forecast::ggAcf(AirPassengers) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 pAirPassengers + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Comparison of various exponential smoothing techniques for the `AirPassengers` data:
+`AirPassengers` 데이터에 대한 다양한 지수 평활 기법 비교:
 
 ```{r}
 #| code-fold: false
@@ -690,12 +690,12 @@ m4$SSE
 c(m4$alpha, m4$beta, m4$gamma)
 ```
 
-The last multiplicative model is the best one, based on the sum of squared errors (SSE) in the training set (see @fig-airpassangersHW). 
-For a more thorough comparison, consider using out-of-sample data in cross-validation.
+마지막 곱셈 모형은 훈련 세트의 제곱 오차 합(SSE)을 기준으로 가장 좋습니다(@fig-airpassangersHW 참조).
+보다 철저한 비교를 위해 교차 검증에서 표본 외 데이터를 사용하는 것을 고려하십시오.
 
 ```{r}
 #| label: fig-airpassangersHW
-#| fig-cap: "Plots of the observed, fitted, and predicted `AirPassengers` data, using various smoothing procedures."
+#| fig-cap: "다양한 평활 절차를 사용하여 관찰, 적합 및 예측된 `AirPassengers` 데이터의 그림."
 #| fig-height: 7
 
 k = 12
@@ -706,22 +706,22 @@ fm4 <- predict(m4, n.ahead = k)
 p1 <- pAirPassengers + 
     geom_line(data = m1$fitted[,"xhat"], col = 4) +
     autolayer(fm1) +
-    ggtitle("Exponential smoothing") +
+    ggtitle("지수 평활") +
     theme(legend.position = "none")
 p2 <- pAirPassengers + 
     geom_line(data = m2$fitted[,"xhat"], col = 4) +
     autolayer(fm2) +
-    ggtitle("Holt's method") +
+    ggtitle("홀트 방법") +
     theme(legend.position = "none")
 p3 <- pAirPassengers + 
     geom_line(data = m3$fitted[,"xhat"], col = 4) +
     autolayer(fm3) +
-    ggtitle("Additive Holt-Winters") +
+    ggtitle("가법 홀트-윈터스") +
     theme(legend.position = "none")
 p4 <- pAirPassengers + 
     geom_line(data = m4$fitted[,"xhat"], col = 4) +
     autolayer(fm4) +
-    ggtitle("Multiplicative Holt-Winters") +
+    ggtitle("곱셈 홀트-윈터스") +
     theme(legend.position = "none")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
@@ -729,26 +729,26 @@ p4 <- pAirPassengers +
 :::
 
 
-## Polynomial regression on time {#sec-regressionTime}
+## 시간에 대한 다항 회귀 {#sec-regressionTime}
 
-This is a very intuitive procedure for fitting parametric trend functions to time series:
+이는 시계열에 매개변수 추세 함수를 적합시키는 매우 직관적인 절차입니다.
 
-* Make a parametric model assumption about $M_t$ as a function of time $t$, for example, quadratic trend:
+* 시간 $t$의 함수로서 $M_t$에 대한 매개변수 모형 가정을 만듭니다. 예를 들어 이차 추세:
 $$
 M_t = \beta_0 + \beta_1 t + \beta_2 t^2
 $$
-* Fit the model using the usual regression estimators (least squares or maximum likelihood)
+* 일반적인 회귀 추정량(최소 제곱 또는 최대 우도)을 사용하여 모형을 적합시킵니다.
 
 ::: {.callout-note}
-A nonstationary time series with a trend represented by a parametric function is a typical example of a *trend-stationary time series* or a time series with a *deterministic trend*. 
-It is easy to make such a time series stationary by modeling and extracting the trend. 
+매개변수 함수로 표현되는 추세를 갖는 비정상 시계열은 *추세-정상 시계열* 또는 *결정론적 추세*를 갖는 시계열의 일반적인 예입니다.
+추세를 모델링하고 추출하여 이러한 시계열을 쉽게 정상으로 만들 수 있습니다.
 :::
 
 ::: {.callout-note icon=false}
 
-## Example: Airline passengers non-seasonal polynomial smoothing
+## 예시: 항공 승객 비계절 다항식 평활
 
-Continue using the `AirPassengers` data and fit linear and quadratic trends.
+`AirPassengers` 데이터를 계속 사용하고 선형 및 이차 추세를 적합시킵니다.
 
 ```{r}
 #| code-fold: false
@@ -761,38 +761,38 @@ tm2.2 <- lm(AirPassengers ~ t + I(t^2))
 tm2.3 <- lm(AirPassengers ~ poly(t, degree = 2))
 ```
 
-After estimating the trend coefficients with OLS, visualize the results (@fig-airpassangersRegTrend).
+OLS로 추세 계수를 추정한 후 결과를 시각화합니다(@fig-airpassangersRegTrend).
 
 ```{r}
 #| label: fig-airpassangersRegTrend
-#| fig-cap: "Plots of the `AirPassengers` data with estimated parametric linear and quadratic trends."
+#| fig-cap: "추정된 매개변수 선형 및 이차 추세가 있는 `AirPassengers` 데이터의 그림."
 
 p1 <- pAirPassengers + 
     geom_line(aes(y = tm1$fitted.values), col = 4, lwd = 1.5) + 
-    ggtitle("Linear trend")
+    ggtitle("선형 추세")
 p2 <- pAirPassengers + 
     geom_line(aes(y = tm2.3$fitted.values), col = 4, lwd = 1.5) + 
-    ggtitle("Quadratic trend")
+    ggtitle("이차 추세")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 ::: {.callout-note}
-The models `tm2.1` and `tm2.2` are equivalent.
-Model `tm2.1` uses a pre-calculated quadratic transformation, while model `tm2.2` applies the transformation on the fly within the R formula call, using the `I()` syntax (without the `I()` wrapper, the output of `tm2.2` would be the same as of `tm1`, not `tm2.1`). 
-However, both models `tm2.1` and `tm2.2` can easily violate the assumption of independence of predictors in linear regression, especially when values of the time index $t$ are large. 
-It applies to our example because the sequence $t$ of decimal years goes from `r min(t)` to `r max(t)`, and $\widehat{\mathrm{cor}}(t, t^2) =$ `r cor(t, t2)`. 
-Therefore, model `tm2.3` is preferred, because it is evaluated on orthogonal polynomials (centering and normalization are applied to $t$ and $t^2$).
+모형 `tm2.1`과 `tm2.2`는 동일합니다.
+모형 `tm2.1`은 미리 계산된 이차 변환을 사용하고, 모형 `tm2.2`는 `I()` 구문을 사용하여 R 공식 호출 내에서 즉시 변환을 적용합니다(`I()` 래퍼가 없으면 `tm2.2`의 출력은 `tm2.1`이 아닌 `tm1`과 동일함).
+그러나 두 모형 `tm2.1`과 `tm2.2` 모두 선형 회귀에서 예측 변수의 독립성 가정을 쉽게 위반할 수 있으며, 특히 시간 색인 $t$의 값이 클 때 그렇습니다.
+이는 십진수 연도의 시퀀스 $t$가 `r min(t)`에서 `r max(t)`로 이동하고 $\widehat{\mathrm{cor}}(t, t^2) =$ `r cor(t, t2)`이기 때문에 우리 예제에 적용됩니다.
+따라서 모형 `tm2.3`은 직교 다항식에서 평가되므로 선호됩니다($t$와 $t^2$에 중심화 및 정규화가 적용됨).
 :::
 
 
-### Seasonal regression with dummy variables
+### 더미 변수를 사용한 계절 회귀
 
-To each time $t$ and each season $k$ we will assign an indicator that 'turns on' if and only if $t$ falls into that season. 
-In principle, a seasonal period of any positive integer length $m \geqslant 2$ is possible, however, in most cases, the length of the seasonal cycle is one year and so the seasonal period of the time series depends on the number of observations per year. 
-Some common periods are $m = 12$ (monthly data) and $m = 4$ (quarterly data). 
-For each $k = 1, \dots, m$, we define the indicator
+각 시간 $t$와 각 계절 $k$에 대해 $t$가 해당 계절에 속하는 경우에만 '켜지는' 지표를 할당합니다.
+원칙적으로 양의 정수 길이 $m \geqslant 2$의 계절 기간이 가능하지만 대부분의 경우 계절 주기의 길이는 1년이므로 시계열의 계절 기간은 연간 관측치 수에 따라 다릅니다.
+일반적인 기간은 $m = 12$(월별 데이터) 및 $m = 4$(분기별 데이터)입니다.
+각 $k = 1, \dots, m$에 대해 지표를 정의합니다.
 $$
 X_{k,t} = \left\{
 \begin{array}{cl}
@@ -802,35 +802,35 @@ X_{k,t} = \left\{
 \right.
 $$
 
-Note that for each $t$ we have $X_{1,t} + X_{2,t} + \dots + X_{m,t} = 1$ since each $t$ corresponds to exactly one season. 
-Thus, given any $m - 1$ of the variables, the remaining variable is known and thus redundant. 
-Because of this linear dependence, we must drop one of the indicator variables (seasons) from the model. 
-It does not matter which season is dropped although sometimes there are choices that are simpler from the point of view of constructing or labeling the design matrix. 
-Thus the general form of a seasonal model looks like
+각 $t$에 대해 $X_{1,t} + X_{2,t} + \dots + X_{m,t} = 1$이므로 각 $t$는 정확히 하나의 계절에 해당합니다.
+따라서 변수 중 $m - 1$개가 주어지면 나머지 변수는 알려져 있으므로 중복됩니다.
+이러한 선형 종속성 때문에 모형에서 지표 변수(계절) 중 하나를 삭제해야 합니다.
+어떤 계절을 삭제하는지는 중요하지 않지만 때로는 설계 행렬을 구성하거나 레이블을 지정하는 관점에서 더 간단한 선택이 있을 수 있습니다.
+따라서 계절 모형의 일반적인 형태는 다음과 같습니다.
 $$
 \begin{split}
 f (Y_{t}) &= M_{t} + \beta_{2} X_{2,t} + \beta_{3} X_{3,t} + \dots + \beta_{m} X_{m,t} + \epsilon_{t} \\
 &= M_{t} + \sum_{i=2}^{m}\beta_{i} X_{i,t} + \epsilon_{t},
 \end{split}
 $$
-where $M_{t}$ is a trend term which may also include some $\beta$ parameters and explanatory variables. 
-The function $f$ represents the appropriate variance-stabilizing transformations as needed. 
-(Here the 1st season has been dropped from the model.)
+여기서 $M_{t}$는 일부 $\beta$ 매개변수와 설명 변수도 포함할 수 있는 추세 항입니다.
+함수 $f$는 필요에 따라 적절한 분산 안정화 변환을 나타냅니다.
+(여기서는 모형에서 첫 번째 계절이 삭제되었습니다.)
 
 ::: {.callout-note icon=false}
 
-## Example: Airline passengers polynomial smoothing with dummy variables for the seasons
+## 예시: 계절에 대한 더미 변수를 사용한 항공 승객 다항식 평활
 
-Consider adding the dummy variables to model seasonality together with the quadratic trend in the `AirPassengers` time series. 
-We noticed multiplicative seasonality in this time series before, therefore we apply a logarithmic transformation to the original data to transform the multiplicative seasonality into additive. 
-That is, we need to estimate the model
+`AirPassengers` 시계열에서 이차 추세와 함께 계절성을 모델링하기 위해 더미 변수를 추가하는 것을 고려하십시오.
+이전에 이 시계열에서 곱셈 계절성을 확인했으므로 곱셈 계절성을 가법으로 변환하기 위해 원래 데이터에 로그 변환을 적용합니다.
+즉, 다음 모형을 추정해야 합니다.
 $$
 \ln(Y_{t}) = \alpha_0 + \alpha_1 t + \alpha_2 t^2 + \sum_{i=2}^{12}\beta_{i} X_{i,t} + \epsilon_{t},
 $$
-where $X_{i,t}$ are the dummy variables for the months. 
-(Here the first month has been dropped from the model, the same as in R the first factor level is dropped.)
+여기서 $X_{i,t}$는 월에 대한 더미 변수입니다.
+(여기서는 모형에서 첫 번째 월이 삭제되었으며, R에서 첫 번째 요인 수준이 삭제되는 것과 동일합니다.)
 
-If we were doing the regression analysis by hand, we would create a design matrix with its few top rows looking like this:
+회귀 분석을 수동으로 수행하는 경우 상단 몇 행이 다음과 같은 설계 행렬을 만듭니다.
 
 ```{r}
 #| echo: false
@@ -843,12 +843,12 @@ head(tmp, 13)
 ```
 
 ::: {.callout-note}
-The way the months are represented above as separate columns of 0s and 1s is called *one-hot encoding* in the field of machine learning.
+위에서 월이 0과 1의 개별 열로 표시되는 방식은 기계 학습 분야에서 *원-핫 인코딩*이라고 합니다.
 :::
 
-In R, it is enough to have *one* variable representing the seasons. 
-This categorical variable should be saved as a `factor`. 
-Then we apply the OLS method to find the model coefficients (see results in @fig-airpassangersRegTrendSeas):
+R에서는 계절을 나타내는 *하나의* 변수만 있으면 충분합니다.
+이 범주형 변수는 `factor`로 저장해야 합니다.
+그런 다음 OLS 방법을 적용하여 모형 계수를 찾습니다(@fig-airpassangersRegTrendSeas의 결과 참조).
 
 ```{r}
 #| code-fold: false
@@ -860,42 +860,42 @@ summary(m)
 
 ```{r}
 #| label: fig-airpassangersRegTrendSeas
-#| fig-cap: "The `AirPassengers` data, with estimated parametric quadratic trend and seasonality (modeled using *dummy variables*), and ACF of the residuals. Since the model was fitted on the log scale, the trend-cycle estimates need to be exponentiated to match the original scale of the data."
+#| fig-cap: "`AirPassengers` 데이터, 추정된 매개변수 이차 추세 및 계절성( *더미 변수*를 사용하여 모델링됨) 및 잔차의 ACF. 모형이 로그 스케일에서 적합되었으므로 추세-주기 추정치를 지수화하여 원래 데이터 스케일과 일치시켜야 합니다."
 
 p1 <- pAirPassengers + 
     geom_line(aes(y = exp(m$fitted.values)), col = 4, lwd = 1.5)
 p2 <- forecast::ggAcf(m$residuals) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-### Seasonal regression with Fourier series
+### 푸리에 급수를 사용한 계절 회귀
 
-It is a spoiler for the future lecture on spectral analysis of time series, but seasonal regression modeling would not be complete without introducing the trigonometric Fourier series.
+이는 시계열의 스펙트럼 분석에 대한 향후 강의의 스포일러이지만, 삼각 푸리에 급수를 도입하지 않고는 계절 회귀 모델링이 완료되지 않습니다.
 
-We can fit a linear regression model using several pairs of trigonometric functions as predictors. 
-For example, for monthly observations
+여러 쌍의 삼각 함수를 예측 변수로 사용하여 선형 회귀 모형을 적합시킬 수 있습니다.
+예를 들어, 월별 관측치의 경우
 $$
 \begin{split}
 cos_{k} (i) &= \cos (2 \pi ki / 12), \\
 sin_{k} (i) &= \sin (2 \pi ki / 12),
 \end{split}
 $$
-where $i$ is the month within the year, and the trigonometric function has $k$ cycles per year.
+여기서 $i$는 연중 월이고 삼각 함수는 연간 $k$개의 주기를 갖습니다.
 
 
 ::: {.callout-note icon=false}
 
-## Example: Airline passengers polynomial smoothing with Fourier series for the seasons
+## 예시: 계절에 대한 푸리에 급수를 사용한 항공 승객 다항식 평활
 
-Now let us apply the method of sinusoids to the `AirPassengers` time series. 
-We have one prominent and, possibly, one less prominent peak per year. 
-Hence, we can test the model with $k = 1$ and $k = 2$. 
-We will construct the following trigonometric predictors:
+이제 `AirPassengers` 시계열에 사인파 방법을 적용해 보겠습니다.
+연간 눈에 띄는 피크가 하나 있고 덜 눈에 띄는 피크가 하나 있을 수 있습니다.
+따라서 $k = 1$과 $k = 2$로 모형을 테스트할 수 있습니다.
+다음 삼각 예측 변수를 구성합니다.
 $$
 \begin{split}
 cos_{1,t} &= \cos(2 \pi \text{month}_t/12),\\
@@ -904,12 +904,12 @@ cos_{2,t} &= \cos(4 \pi \text{month}_t/12),\\
 sin_{2,t} &= \sin(4 \pi \text{month}_t/12)
 \end{split}
 $$
-to use in the model
+모형에서 사용하기 위해
 $$
 \ln(Y_{t}) = \alpha_0 + \alpha_1 t + \alpha_2 t^2 + \beta_{1}cos_{1,t} + \beta_{2}sin_{1,t} + \beta_{3}cos_{2,t} + \beta_{4}sin_{2,t} + \epsilon_{t}.
 $$
 
-Calculate the predictors and estimate the model in R (see results in @fig-airpassangersRegTrendFourier):
+R에서 예측 변수를 계산하고 모형을 추정합니다(@fig-airpassangersRegTrendFourier의 결과 참조).
 
 ```{r}
 #| code-fold: false
@@ -925,41 +925,41 @@ summary(m)
 
 ```{r}
 #| label: fig-airpassangersRegTrendFourier
-#| fig-cap: "The `AirPassengers` data, with estimated parametric quadratic trend and seasonality (modeled using *trigonometric functions*), and ACF of the residuals. Since the model was fitted on the log scale, the trend-cycle estimates need to be exponentiated to match the original scale of the data."
+#| fig-cap: "`AirPassengers` 데이터, 추정된 매개변수 이차 추세 및 계절성( *삼각 함수*를 사용하여 모델링됨) 및 잔차의 ACF. 모형이 로그 스케일에서 적합되었으므로 추세-주기 추정치를 지수화하여 원래 데이터 스케일과 일치시켜야 합니다."
 
 p1 <- pAirPassengers + 
     geom_line(aes(y = exp(m$fitted.values)), col = 4, lwd = 1.5)
 p2 <- forecast::ggAcf(m$residuals) + 
-    ggtitle("ACF of residuals") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF") +
+    xlab("시차 (월)")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-## Generalized additive models (GAMs) {#sec-GAM}
+## 일반화 가법 모형 (GAM) {#sec-GAM}
 
-An alternative way of modeling nonlinearities in trends, seasonality, and other patterns is by replacing the original variables with those individually transformed using smooth nonparametric functions, such as in a *generalized additive model* [GAM,@Wood:2006book].
-The model is called 'generalized' because the distribution of the response variable $Y_t$ is not just normal but can be from a family of exponential distributions, such as Poisson, binomial, and gamma.
-A smooth monotonic function $g(\cdot)$ called the 'link function' is applied to transform the response variable.
-However, our interest currently is in the additive nature of these models.
+추세, 계절성 및 기타 패턴의 비선형성을 모델링하는 다른 방법은 원래 변수를 *일반화 가법 모형*[GAM, @Wood:2006book]과 같이 평활 비모수 함수를 사용하여 개별적으로 변환된 변수로 바꾸는 것입니다.
+이 모형은 응답 변수 $Y_t$의 분포가 정규 분포뿐만 아니라 포아송, 이항 및 감마와 같은 지수 분포 계열에서 올 수 있기 때문에 '일반화'라고 합니다.
+'연결 함수'라고 하는 평활 단조 함수 $g(\cdot)$가 응답 변수를 변환하는 데 적용됩니다.
+그러나 현재 우리의 관심사는 이러한 모형의 가법적 특성입니다.
 
 ```{r}
 #| echo: false
 
-# Time domain
+# 시간 도메인
 t <- 1:length(WWWusage)
 
-# Manually set knots
+# 수동으로 매듭 설정
 tau <- c(min(t), 10, 20, 50)
 
-# Generate the B-spline basis matrices
+# B-스플라인 기저 행렬 생성
 s1 <- splines::bs(t, knots = tau, degree = 1)
 s2 <- splines::bs(t, knots = tau, degree = 2)
 s3 <- splines::bs(t, knots = tau, degree = 3)
 
-# Transform for easy plotting and regression
+# 쉬운 그림 및 회귀를 위해 변환
 S1 <- ts(data.frame(s1))
 colnames(S1) <- paste0("B", 1:ncol(S1))
 S2 <- ts(data.frame(s2))
@@ -968,16 +968,16 @@ S3 <- ts(data.frame(s3))
 colnames(S3) <- paste0("B", 1:ncol(S3))
 ```
 
-Instead of fitting a global nonlinear function like in a polynomial regression (@sec-regressionTime) or fitting simpler local polynomials directly like in lowess smoothing (@sec-lowess), we can construct a basis from basic splines (B-splines).
-B-splines are simple functions, which vanish outside the intervals defined by time points called the 'knots.'
-These splines are defined recursively, from the lowest to higher orders, starting from a simple indicator function for the intervals between the knots [see Appendix to Chapter 5 in @Hastie:etal:2009; or Chapter 4.1 in @Wood:2006book for the recursive formulas]. 
-Here we show the results of the recursive computations, for times $t = 1, \dots,$ `r max(t)` and knots `r paste0(tau, collapse = ", ")` spaced unequally for illustration purposes (uniformly-spaced knots give us cardinal B-splines).
-@fig-BS1 shows a basis formed by B-splines of degree one, and @fig-BS2 shows splines of degree two.
+다항 회귀(@sec-regressionTime)와 같이 전역 비선형 함수를 적합시키거나 로위스 평활(@sec-lowess)과 같이 더 간단한 국소 다항식을 직접 적합시키는 대신 기본 스플라인(B-스플라인)에서 기저를 구성할 수 있습니다.
+B-스플라인은 '매듭'이라고 하는 시간 지점으로 정의된 구간 외부에서 사라지는 간단한 함수입니다.
+이러한 스플라인은 매듭 사이의 구간에 대한 간단한 지표 함수에서 시작하여 가장 낮은 차수에서 높은 차수로 재귀적으로 정의됩니다[@Hastie:etal:2009의 5장 부록 또는 @Wood:2006book의 4.1장 재귀 공식 참조].
+여기서는 시간 $t = 1, \dots,$ `r max(t)`와 그림을 위해 불균등하게 간격을 둔 매듭 `r paste0(tau, collapse = ", ")`에 대한 재귀 계산 결과를 보여줍니다(균일하게 간격을 둔 매듭은 카디널 B-스플라인을 제공함).
+@fig-BS1은 1차 B-스플라인으로 형성된 기저를 보여주고 @fig-BS2는 2차 스플라인을 보여줍니다.
 
 ```{r}
 #| label: fig-BS1
 #| echo: false
-#| fig-cap: "B-splines of degree one. The vertical dashed lines denote locations of the knots."
+#| fig-cap: "1차 B-스플라인. 세로 점선은 매듭의 위치를 나타냅니다."
 
 forecast::autoplot(S1, facets = TRUE) +
     geom_vline(xintercept = tau, lty = 2, col = "gray50") +
@@ -987,40 +987,40 @@ forecast::autoplot(S1, facets = TRUE) +
 ```{r}
 #| label: fig-BS2
 #| echo: false
-#| fig-cap: "B-splines of degree two. The vertical dashed lines denote locations of the knots."
+#| fig-cap: "2차 B-스플라인. 세로 점선은 매듭의 위치를 나타냅니다."
 
 forecast::autoplot(S2, facets = TRUE) +
     geom_vline(xintercept = tau, lty = 2, col = "gray50") +
     ylab("")
 ```
 
-In the next step, the basis is used in regression, for example, to model the expected value $\mu_t$ of the `WWWusage` data introduced in @sec-lowess:
+다음 단계에서는 예를 들어 @sec-lowess에서 소개된 `WWWusage` 데이터의 기대값 $\mu_t$를 모델링하기 위해 기저를 회귀에 사용합니다.
 $$
 g(\mu_t) = \alpha_0 + f(t),
 $${#eq-GAM}
-where $\alpha_0$ is the intercept, and $f(t)$ represents the added effects of the $M$ basis functions $B_m(t)$ (hence the word 'additive' in GAM):
+여기서 $\alpha_0$는 절편이고 $f(t)$는 $M$개의 기저 함수 $B_m(t)$의 추가 효과를 나타냅니다(따라서 GAM에서 '가법'이라는 단어).
 $$
 f(t) = \sum_{m = 1}^M \beta_m B_m(t).
 $$
-Here we may assume that the response `WWWusage` is normally distributed.
-The link function $g(\cdot)$ for normal distribution is identity (no transformation to the original data), hence we can omit it and rewrite @eq-GAM for our data as follows:
+여기서는 응답 `WWWusage`가 정규 분포를 따른다고 가정할 수 있습니다.
+정규 분포에 대한 연결 함수 $g(\cdot)$는 항등 함수이므로(원래 데이터에 변환 없음) 생략하고 데이터에 대해 @eq-GAM을 다음과 같이 다시 쓸 수 있습니다.
 $$
 \mu_t = \alpha_0 + f(t).
 $$
-We are not interested in the individual regression coefficients $\beta_m$ (regression parameters) we estimated, hence the function $f(t)$ is *nonparametric* even though many parameters have been estimated to obtain $f(t)$, similar to lowess smoothing.
+추정된 개별 회귀 계수 $\beta_m$(회귀 매개변수)에는 관심이 없으므로 함수 $f(t)$는 로위스 평활과 유사하게 $f(t)$를 얻기 위해 많은 매개변수가 추정되었음에도 불구하고 *비모수적*입니다.
 
-The model in @eq-GAM can handle deviations from normality and can accommodate nonlinearity and nonmonotonicity of individual relationships, however, the model does not address the potential issue of remaining dependencies in the errors [e.g., see @Kohn:etal:2000].
-We skip the topic of selecting an appropriate distribution, testing statistical significance of estimated patterns, or using the reported confidence intervals for inference until later in the course when we are familiar with various tests for autocorrelation and trends (e.g., see @sec-trendtest on trend tests and @sec-GAMLSS using additional covariates, specifying structure of the regression errors, and extending GAM to several parameters of an exponential distribution beyond just the mean).
+@eq-GAM의 모형은 정규성에서 벗어남을 처리하고 개별 관계의 비선형성 및 비단조성을 수용할 수 있지만, 이 모형은 오차의 잠재적인 나머지 종속성 문제를 해결하지 않습니다[예: @Kohn:etal:2000 참조].
+적절한 분포 선택, 추정된 패턴의 통계적 유의성 검정 또는 추론을 위한 보고된 신뢰 구간 사용 주제는 자기 상관 및 추세에 대한 다양한 검정에 익숙해질 때까지 과정 후반부로 건너뜁니다(예: 추세 검정에 대한 @sec-trendtest 및 추가 공변량 사용, 회귀 오차 구조 지정 및 평균 외에 지수 분포의 여러 매개변수로 GAM 확장하는 @sec-GAMLSS 참조).
 
-@fig-BSreg shows the results of fitting the model in @eq-GAM to the bases shown in @fig-BS1 and @fig-BS2.
-The results are not so bad given the knots were set without considering the data.
+@fig-BSreg는 @fig-BS1과 @fig-BS2에 표시된 기저에 @eq-GAM의 모형을 적합시킨 결과를 보여줍니다.
+매듭이 데이터를 고려하지 않고 설정되었음을 감안할 때 결과는 그리 나쁘지 않습니다.
 
 ```{r}
 #| label: fig-BSreg
 #| echo: false
-#| fig-cap: "Results of regressing `WWWusage` on the linear, quadratic, and cubic B-spline bases. The fit in each case is suboptimal because the knots were set arbitrarily."
+#| fig-cap: "`WWWusage`를 선형, 이차 및 삼차 B-스플라인 기저에 회귀한 결과. 각 경우 매듭이 임의로 설정되었기 때문에 적합이 최적이 아닙니다."
 
-# Fit the regressions
+# 회귀 적합
 m1 <- lm(WWWusage ~ S1[, -1])
 m2 <- lm(WWWusage ~ S2[, -1])
 m3 <- lm(WWWusage ~ S3[, -1])
@@ -1029,33 +1029,33 @@ p0 <- ggplot2::autoplot(WWWusage, col = "grey50")
 
 p1 <- p0 + 
     geom_line(aes(y = m1$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Degree 1")
+    ggtitle("1차")
 p2 <- p0 + 
     geom_line(aes(y = m2$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Degree 2")
+    ggtitle("2차")
 p3 <- p0 + 
     geom_line(aes(y = m3$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Degree 3")
+    ggtitle("3차")
 p1 + p2 + p3 + 
     plot_annotation(tag_levels = 'A')
 ```
 
-The number and locations of the knots are important tuning parameters for achieving the desired smoothness.
-Fortunately, there exist cross-validation procedures and penalization techniques that allow us to set these parameters rather automatically.
-When a penalty is applied to the basis coefficients, B-splines are called P-splines.
+매듭의 수와 위치는 원하는 평활도를 달성하기 위한 중요한 조정 매개변수입니다.
+다행히 이러한 매개변수를 다소 자동으로 설정할 수 있는 교차 검증 절차와 벌점화 기법이 존재합니다.
+기저 계수에 벌점이 적용되면 B-스플라인을 P-스플라인이라고 합니다.
 
-The R packages `mgcv` and `gamlss` provide several types of smoothing splines.
-In this lecture, we demonstrate the package `mgcv` but we will use the package `gamlss` in @sec-GAMLSS.
+R 패키지 `mgcv`와 `gamlss`는 여러 유형의 평활 스플라인을 제공합니다.
+이 강의에서는 `mgcv` 패키지를 시연하지만 @sec-GAMLSS에서는 `gamlss` 패키지를 사용할 것입니다.
 
 ::: {.callout-note icon=false}
 
-## Example: GAM of WWWusage
+## 예시: WWWusage의 GAM
 
-Consider fitting the GAM specified in @eq-GAM to the `WWWusage` time series.
-Here we use B-splines again (see `?mgcv::smooth.terms` and `?mgcv::b.spline` for different options), but allow the parameters to be estimated each time using cross-validation (see `?mgcv::gam` for more details).
+`WWWusage` 시계열에 @eq-GAM에 지정된 GAM을 적합시키는 것을 고려하십시오.
+여기서는 다시 B-스플라인을 사용하지만(다른 옵션은 `?mgcv::smooth.terms` 및 `?mgcv::b.spline` 참조) 교차 검증을 사용하여 매번 매개변수를 추정하도록 허용합니다(자세한 내용은 `?mgcv::gam` 참조).
 
-In the code below, we estimate the model four times, with different spline orders `m[1]` (quadratic or cubic) and basis dimensions `k` (`k` controls the overall smoothness as it sets the upper limit on the degrees of freedom associated with a smooth, see `?mgcv::choose.k`).
-The models can be compared using the Akaike information criterion (AIC).
+아래 코드에서는 다양한 스플라인 차수 `m[1]`(이차 또는 삼차)과 기저 차원 `k`(`k`는 평활과 관련된 자유도의 상한을 설정하므로 전체 평활도를 제어함, `?mgcv::choose.k` 참조)로 모형을 네 번 추정합니다.
+모형은 아카이케 정보 기준(AIC)을 사용하여 비교할 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -1069,30 +1069,30 @@ mwww_c3 <- gam(WWWusage ~ s(t, bs = "bs", m = c(3, 2), k = 15))
 AIC(mwww_q1, mwww_c1, mwww_c2, mwww_c3)
 ```
 
-From the results above and @fig-WWWusageGAM, we may conclude that when the smoothing parameters are allowed to be selected automatically, restricting the degrees of freedom leads to more dramatic changes than switching the order of splines.
+위의 결과와 @fig-WWWusageGAM에서 평활화 매개변수를 자동으로 선택하도록 허용하면 자유도를 제한하는 것이 스플라인 차수를 바꾸는 것보다 더 극적인 변화를 초래한다고 결론 내릴 수 있습니다.
 
 ```{r}
 #| label: fig-WWWusageGAM
-#| fig-cap: "Results of regressing `WWWusage` on time, using the smoothing splines."
+#| fig-cap: "평활 스플라인을 사용하여 시간에 대해 `WWWusage`를 회귀한 결과."
 #| fig-height: 7
 
 p1 <- p0 + 
     geom_line(aes(y = mwww_q1$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Quadratic splines, automatic k")
+    ggtitle("이차 스플라인, 자동 k")
 p2 <- p0 + 
     geom_line(aes(y = mwww_c1$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Cubic splines, automatic k")
+    ggtitle("삼차 스플라인, 자동 k")
 p3 <- p0 + 
     geom_line(aes(y = mwww_c2$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Cubic splines, k = 5")
+    ggtitle("삼차 스플라인, k = 5")
 p4 <- p0 + 
     geom_line(aes(y = mwww_c3$fitted.values), col = 4, lwd = 1.5) +
-    ggtitle("Cubic splines, k = 15")
+    ggtitle("삼차 스플라인, k = 15")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
 
-Summary of the last model using cubic smoothing splines:
+삼차 평활 스플라인을 사용한 마지막 모형 요약:
 
 ```{r}
 #| code-fold: false
@@ -1103,29 +1103,29 @@ summary(mwww_c3)
 
 ::: {.callout-note icon=false}
 
-## Example: GAM of the airline passengers time series
+## 예시: 항공 승객 시계열의 GAM
 
-Consider fitting a GAM to the airline passengers time series. 
-Similar to our previous analyses, we need to apply logarithmic transformations to stabilize the variance and transform the multiplicative seasonality to additive, but now we have a few more options to choose from.
-We may continue assuming a lognormal distribution of the response with the identity link $g(\mathrm{E}(Y_t)) = \mathrm{E}(Y_t)$
+항공 승객 시계열에 GAM을 적합시키는 것을 고려하십시오.
+이전 분석과 유사하게 분산을 안정화하고 곱셈 계절성을 가법으로 변환하기 위해 로그 변환을 적용해야 하지만 이제 선택할 수 있는 옵션이 몇 가지 더 있습니다.
+항등 연결 함수 $g(\mathrm{E}(Y_t)) = \mathrm{E}(Y_t)$를 사용하여 응답의 로그 정규 분포를 계속 가정할 수 있습니다.
 $$
-Y_t \sim LN(\mu_t, \sigma^2) \text{ or equivalently } \ln(Y_t) ~ N(\mu_t, \sigma^2)
+Y_t \sim LN(\mu_t, \sigma^2) \text{ 또는 동등하게 } \ln(Y_t) ~ N(\mu_t, \sigma^2)
 $${#eq-GAMlno}
-or use a normal distribution with the logarithmic link function $g(\mathrm{E}(Y_t)) = \ln(\mathrm{E}(Y_t))$:
+또는 로그 연결 함수 $g(\mathrm{E}(Y_t)) = \ln(\mathrm{E}(Y_t))$를 사용하여 정규 분포를 사용할 수 있습니다.
 $$
 Y_t \sim N(\mu_t, \sigma^2).
 $${#eq-GAMno}
-The main difference between these options is how the errors are interpreted.
+이러한 옵션 간의 주요 차이점은 오차가 해석되는 방식입니다.
 
-For the expected values, we will use a GAM with smoothing splines applied to the numeric time and month:
+기대값의 경우 숫자 시간과 월에 평활 스플라인을 적용한 GAM을 사용합니다.
 $$
 g(\mu_t) = \alpha_0 + f_1(t) + f_2(Month_t).
 $$
-This model will capture a potentially non-monotonic trend and seasonality.
-We will use cyclical splines for $f_2(\cdot)$. 
-Cyclical splines have an additional penalty to ensure a smooth transition between the last and the first month of the annual cycle (from December to January).
+이 모형은 잠재적으로 비단조적인 추세와 계절성을 포착합니다.
+$f_2(\cdot)$에 대해 주기적 스플라인을 사용합니다.
+주기적 스플라인에는 연간 주기의 마지막 월과 첫 번째 월(12월에서 1월) 사이의 부드러운 전환을 보장하기 위한 추가 벌점이 있습니다.
 
-Below we fit the model for both distribution families, lognormal with the identity link function (@eq-GAMlno) and normal with the logarithmic link (@eq-GAMno):
+아래에서는 항등 연결 함수를 사용하는 로그 정규 분포(@eq-GAMlno)와 로그 연결 함수를 사용하는 정규 분포(@eq-GAMno)의 두 분포 계열에 대해 모형을 적합시킵니다.
 
 ```{r}
 #| code-fold: false
@@ -1140,26 +1140,26 @@ m_no <- gam(AirPassengers ~ s(t) + s(month, bs = "cp"),
          family = gaussian(link = "log"))
 ```
 
-@fig-airpassangersGAM shows the results of smoothing are quite similar. 
-In both cases, we were not able to fully remove seasonality from the data, based on the residual autocorrelation at the seasonal lag of 12 months.
+@fig-airpassangersGAM은 평활화 결과가 매우 유사함을 보여줍니다.
+두 경우 모두 계절 시차 12개월에서의 잔차 자기 상관을 기준으로 데이터에서 계절성을 완전히 제거할 수 없었습니다.
 
 ```{r}
 #| label: fig-airpassangersGAM
-#| fig-cap: "Plots of the `AirPassengers` data smoothed with GAMs and ACFs of the residuals."
+#| fig-cap: "GAM으로 평활화된 `AirPassengers` 데이터의 그림과 잔차의 ACF."
 #| fig-height: 7
 
 p1 <- pAirPassengers + 
     geom_line(aes(y = exp(m_lno$fitted.values)), col = 4, lwd = 1.5) + 
-    ggtitle("GAM smoothing using lognormal distribution")
+    ggtitle("로그 정규 분포를 사용한 GAM 평활")
 p2 <- forecast::ggAcf(m_lno$residuals) + 
-    ggtitle("ACF of residuals, using lognormal distribution") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF, 로그 정규 분포 사용") +
+    xlab("시차 (월)")
 p3 <- pAirPassengers + 
     geom_line(aes(y = m_no$fitted.values), col = 4, lwd = 1.5) + 
-    ggtitle("GAM smoothing using normal distribution with log link")
+    ggtitle("로그 연결 함수를 사용한 정규 분포를 사용한 GAM 평활")
 p4 <- forecast::ggAcf(m_no$residuals) + 
-    ggtitle("ACF of residuals, using normal distribution with log link") +
-    xlab("Lag (months)")
+    ggtitle("잔차의 ACF, 로그 연결 함수를 사용한 정규 분포 사용") +
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) + 
     plot_annotation(tag_levels = 'A')
 ```
@@ -1170,17 +1170,17 @@ p4 <- forecast::ggAcf(m_no$residuals) +
 tmp <- summary(m_no)
 ```
 
-We might prefer using the formulation in @eq-GAMno since it captures the most recent peaks better (@fig-airpassangersGAM C) than the alternative (@fig-airpassangersGAM A), however, more rigorous numeric comparisons can be performed.
+@eq-GAMno의 공식이 대안(@fig-airpassangersGAM A)보다 최근 피크를 더 잘 포착하므로(@fig-airpassangersGAM C) 사용하는 것을 선호할 수 있지만 더 엄격한 수치 비교를 수행할 수 있습니다.
 
-The fitted smooth functions can be visualized using `plot(m_no)` or using the `ggplot2`-type graphics as in @fig-airpassangersGAMterms.
-Note that the smooths are centered at 0 for the identifiability.
-This model used approximately `r tmp$s.table['s(t)', 'edf']` degrees of freedom to fit the trend, which is much more than the polynomial regression used.
-To fit the seasonality, the GAM used approximately `r tmp$s.table['s(month)', 'edf']` degrees of freedom, which is between the numbers for the regressions with Fourier series (4) and categorical months (11).
-Note that the quality of removing seasonality by GAM in this case is also between the regressions with Fourier series (strong autocorrelation at the seasonal lag remains, @fig-airpassangersRegTrendFourier) and categorical months (no significant autocorrelation at the seasonal lag, @fig-airpassangersRegTrendSeas).
+적합된 평활 함수는 `plot(m_no)`를 사용하거나 @fig-airpassangersGAMterms와 같이 `ggplot2` 유형 그래픽을 사용하여 시각화할 수 있습니다.
+식별 가능성을 위해 평활이 0을 중심으로 한다는 점에 유의하십시오.
+이 모형은 추세를 적합시키는 데 약 `r tmp$s.table['s(t)', 'edf']` 자유도를 사용했으며, 이는 다항 회귀에서 사용된 것보다 훨씬 많습니다.
+계절성을 적합시키기 위해 GAM은 약 `r tmp$s.table['s(month)', 'edf']` 자유도를 사용했으며, 이는 푸리에 급수를 사용한 회귀(4)와 범주형 월(11)의 수치 사이입니다.
+이 경우 GAM에 의한 계절성 제거 품질도 푸리에 급수를 사용한 회귀(계절 시차에서 강한 자기 상관이 남아 있음, @fig-airpassangersRegTrendFourier)와 범주형 월(계절 시차에서 유의한 자기 상관 없음, @fig-airpassangersRegTrendSeas) 사이입니다.
 
 ```{r}
 #| label: fig-airpassangersGAMterms
-#| fig-cap: "GAM smoothers. Solid curves are the function estimates, dashed curves are 2 standard errors above and below the estimate. The y-labels show the variable to which the smoothing splines were applied and the approximate degrees of freedom used for the smooth."
+#| fig-cap: "GAM 평활기. 실선 곡선은 함수 추정치이고 점선 곡선은 추정치 위아래 2 표준 오차입니다. y 레이블은 평활 스플라인이 적용된 변수와 평활에 사용된 근사 자유도를 보여줍니다."
 
 library(mgcViz)
 b <- getViz(m_no)
@@ -1191,21 +1191,21 @@ print(plot(b, allTerms = TRUE) +
 :::
 
 
-## Differencing {#sec-differencing}
+## 차분 {#sec-differencing}
 
-A big subset of time series models (particularly, models dealing with random walk series) applies the differencing to eliminate trends.
+시계열 모형의 큰 하위 집합(특히 랜덤 워크 계열을 다루는 모형)은 추세를 제거하기 위해 차분을 적용합니다.
 
-Let $\Delta$ be the difference operator ($\nabla$ notation is also used sometimes), then the simple first-order differences are:
+$\Delta$를 차분 연산자라고 하면($\nabla$ 표기법도 때때로 사용됨) 단순 1차 차분은 다음과 같습니다.
 $$
 \begin{split}
 \Delta Y_t &= Y_t - Y_{t-1} \\
 &=(1-B)Y_t,
 \end{split}
 $$
-where $B$ is a backshift operator.
+여기서 $B$는 후방 이동 연산자입니다.
 
-The **backshift operator** and difference operator are useful for a convenient representation of higher-order differences. 
-We will often use backshift operators in future lectures:
+**후방 이동 연산자**와 차분 연산자는 고차 차분을 편리하게 표현하는 데 유용합니다.
+향후 강의에서 후방 이동 연산자를 자주 사용할 것입니다.
 $$
 \begin{split}
 B^0Y_{t} &= Y_{t} \\
@@ -1215,10 +1215,10 @@ B^{2}Y_{t} &= Y_{t-2} \\
 B^{k}Y_{t} &= Y_{t-k}.
 \end{split}
 $$
-The convenience is because the powers of the operators can be treated as powers of elements of usual polynomials, so we can make different operations for more complex cases.
+연산자의 거듭제곱을 일반 다항식의 요소의 거듭제곱으로 처리할 수 있으므로 더 복잡한 경우에 대해 다른 연산을 수행할 수 있다는 편리함이 있습니다.
 
-For example, if we took second-order differences, $\Delta^2Y_t = (1-B)^2Y_t$, to remove a trend and then used differences with the seasonal lag of 12 months to remove a strong seasonal component, what would be the final form of the transformed series? 
-The transformed series, $Y^*_t$, will be:
+예를 들어, 추세를 제거하기 위해 2차 차분 $\Delta^2Y_t = (1-B)^2Y_t$를 취한 다음 강한 계절 성분을 제거하기 위해 계절 시차 12개월의 차분을 사용했다면 변환된 계열의 최종 형태는 어떻게 될까요?
+변환된 계열 $Y^*_t$는 다음과 같습니다.
 $$
 \begin{split}
 Y^*_t & = (1-B)^2 (1 - B^{12})Y_t \\
@@ -1227,65 +1227,65 @@ Y^*_t & = (1-B)^2 (1 - B^{12})Y_t \\
 & = Y_t - 2Y_{t-1} + Y_{t-2} - Y_{t-12} + 2Y_{t-13}-Y_{t-14},
 \end{split}
 $$
-but we will often use just the top-row notations.
+그러나 맨 위 행 표기법만 자주 사용할 것입니다.
 
-We will discuss formal tests to identify an appropriate order of differences in future lectures (unit-root tests), but for now use the *rule of thumb:* for time trends looking linear use 1st order differences ($\Delta Y_t = Y_t - Y_{t-1}$), for parabolic shapes use differences of the 2nd order, etc. 
-Apply the differencing of higher orders until the time series looks stationary (plot the transformed series and its ACF at each step). 
-In practice, differences of order 3 or higher are rarely needed.
+향후 강의에서 적절한 차분 차수를 식별하기 위한 공식적인 검정(단위근 검정)에 대해 논의하겠지만, 지금은 *경험 법칙*을 사용하십시오. 선형으로 보이는 시간 추세에는 1차 차분($\Delta Y_t = Y_t - Y_{t-1}$)을 사용하고 포물선 모양에는 2차 차분 등을 사용합니다.
+시계열이 정상으로 보일 때까지 고차 차분을 적용합니다(각 단계에서 변환된 계열과 ACF를 그림).
+실제로 3차 이상의 차분은 거의 필요하지 않습니다.
 
 ::: {.callout-note}
-A nonstationary time series that can be converted to stationary by taking differences is also sometimes called a *difference-stationary time series* or a time series with a *stochastic trend*. 
-Very rarely, a time series may contain both deterministic and stochastic trends that need to be modeled or removed for further analysis.
+차분을 취하여 정상으로 변환할 수 있는 비정상 시계열을 *차분-정상 시계열* 또는 *확률적 추세*를 갖는 시계열이라고도 합니다.
+매우 드물게 시계열에 결정론적 추세와 확률적 추세가 모두 포함되어 추가 분석을 위해 모델링하거나 제거해야 할 수 있습니다.
 :::
 
 ::: {.callout-note icon=false}
 
-## Example: Shampoo detrending by differencing
+## 예시: 차분을 이용한 샴푸 추세 제거
 
-Remove the trend from the shampoo series by applying the differences.
+차분을 적용하여 샴푸 계열에서 추세를 제거합니다.
 
-Based on @fig-shampooDiff, differencing once is enough to remove the trend. 
-The resulting detrended series is
+@fig-shampooDiff를 기준으로 한 번 차분하면 추세를 제거하기에 충분합니다.
+결과적인 추세 제거 계열은 다음과 같습니다.
 $$
 Y^*_t = \Delta Y_t = (1 - B)Y_t = Y_t - Y_{t-1}.
 $$
 
 ```{r}
 #| label: fig-shampooDiff
-#| fig-cap: "Time series plot of shampoo sales with an estimated ACF and the differenced series with their ACFs."
+#| fig-cap: "추정된 ACF가 있는 샴푸 판매량의 시계열 그림과 ACF가 있는 차분된 계열."
 #| fig-height: 9
 
 p1 <- pshampoo +
     ggtitle("Yt")
 p2 <- forecast::ggAcf(shampoo) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p3 <- ggplot2::autoplot(diff(shampoo)) + 
-    xlab("Year") + 
-    ylab("Sales") + 
+    xlab("연도") +
+    ylab("판매량") +
     ggtitle("D1")
 p4 <- forecast::ggAcf(diff(shampoo)) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p5 <- ggplot2::autoplot(diff(shampoo, differences = 2)) + 
-    xlab("Year") + 
-    ylab("Sales") +
+    xlab("연도") +
+    ylab("판매량") +
     ggtitle("D2")
 p6 <- forecast::ggAcf(diff(shampoo, differences = 2)) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) / (p5 + p6) +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
-A deterministic linear trend can be also eliminated by differencing. 
-For example, consider a time series $X-t$ with a deterministic linear trend:
+결정론적 선형 추세도 차분으로 제거할 수 있습니다.
+예를 들어, 결정론적 선형 추세를 갖는 시계열 $X-t$를 고려하십시오.
 $$
 X_t = a + b t + Z_t,
 $$
-where $Z_t \sim \mathrm{WN}(0,\sigma^2)$.
-The first-order differences of $X_t$ remove the linear trend:
+여기서 $Z_t \sim \mathrm{WN}(0,\sigma^2)$입니다.
+$X_t$의 1차 차분은 선형 추세를 제거합니다.
 $$
 \begin{align}
 (1 - B)X_t &= X_t - X_{t-1} \\
@@ -1297,12 +1297,12 @@ $$
 
 ::: {.callout-note icon=false}
 
-## Example: Airline passengers detrending and deseasonalizing by differencing
+## 예시: 차분을 이용한 항공 승객 추세 제거 및 계절성 제거
 
-Remove trend and seasonality from the log-transformed `AirPassengers` series by applying the differences.
+차분을 적용하여 로그 변환된 `AirPassengers` 계열에서 추세와 계절성을 제거합니다.
 
-Based on @fig-AirPassengersDiff, differencing once with the non-seasonal and the seasonal lags is enough to remove the trend and strong seasonality. 
-The final series (denoted as `D1D12`) is
+@fig-AirPassengersDiff를 기준으로 비계절 및 계절 시차로 한 번 차분하면 추세와 강한 계절성을 제거하기에 충분합니다.
+최종 계열(`D1D12`로 표시됨)은 다음과 같습니다.
 $$
 \begin{split}
 D1D12_t & = (1 - B)(1 - B^{12})\lg Y_t = (1 - B - B^{12} + B^{13})\lg Y_t\\
@@ -1312,92 +1312,92 @@ $$
 
 ```{r}
 #| label: fig-AirPassengersDiff
-#| fig-cap: "Time series plot of the airline passenger series with an estimated ACF and the detrended (differenced) series with their ACFs."
+#| fig-cap: "추정된 ACF가 있는 항공 승객 계열의 시계열 그림과 ACF가 있는 추세 제거(차분)된 계열."
 #| fig-height: 9
 
 Yt <- log10(AirPassengers)
 
-# Apply first-order (non-seasonal) differences
+# 1차(비계절) 차분 적용
 D1 <- diff(Yt)
 
-# Additionally, apply first-order seasonal differences
+# 추가적으로 1차 계절 차분 적용
 D1D12 <- diff(D1, lag = 12)
 
 p1 <- ggplot2::autoplot(Yt) + 
-    xlab("Year") + 
-    ylab("log10(Air passangers)") + 
+    xlab("연도") +
+    ylab("log10(항공 승객)") +
     ggtitle("Yt")
 p2 <- forecast::ggAcf(Yt) + 
     ggtitle("Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p3 <- ggplot2::autoplot(D1) + 
-    xlab("Year") + 
-    ylab("log10(Air passangers)") + 
+    xlab("연도") +
+    ylab("log10(항공 승객)") +
     ggtitle("(1-B)Yt")
 p4 <- forecast::ggAcf(D1) + 
     ggtitle("(1-B)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p5 <- ggplot2::autoplot(D1D12) + 
-    xlab("Year") + 
-    ylab("log10(Air passangers)") + 
+    xlab("연도") +
+    ylab("log10(항공 승객)") +
     ggtitle("(1-B)(1-B12)Yt")
 p6 <- forecast::ggAcf(D1D12) + 
     ggtitle("(1-B)(1-B12)Yt") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 (p1 + p2) / (p3 + p4) / (p5 + p6) +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-## Conclusion
+## 결론
 
-We have implemented various methods for trend visualization, modeling, and trend removal. 
-In each case, the method could be extended to also remove a strong seasonal signal. 
-The choice of a method depends on many things, such as:
+추세 시각화, 모델링 및 추세 제거를 위한 다양한 방법을 구현했습니다.
+각 경우에 이 방법은 강한 계절 신호를 제거하도록 확장될 수 있습니다.
+방법 선택은 다음과 같은 여러 가지에 따라 달라집니다.
 
-* The methods require different skill levels (and time commitment) for their implementation and can be categorized as automatic and non-automatic.
-* Some methods are very flexible when dealing with seasonality (e.g., Holt--Winters), while others are not.
-* The goal of smoothing and desired degree of smoothness in the output.
-* Some of the methods have a convenient way of getting forecasts (e.g., exponential smoothing and polynomial regression), while other methods are more suitable for interpolation (polynomial regression) and simple visualization (simple moving average), or just trend elimination (all of the considered methods are capable of eliminating trends, but differencing is the method that does nothing else but the elimination).
+* 방법은 구현에 필요한 기술 수준(및 시간 투자)이 다르며 자동 및 비자동으로 분류할 수 있습니다.
+* 일부 방법은 계절성 처리에 매우 유연하지만(예: 홀트-윈터스) 다른 방법은 그렇지 않습니다.
+* 평활화의 목표와 출력에서 원하는 평활도.
+* 일부 방법은 예측을 얻는 편리한 방법이 있지만(예: 지수 평활 및 다항 회귀) 다른 방법은 보간(다항 회귀) 및 단순 시각화(단순 이동 평균) 또는 추세 제거에 더 적합합니다(고려된 모든 방법은 추세를 제거할 수 있지만 차분은 제거 외에는 아무것도 하지 않는 방법임).
 
-Remember that forecasted values (point forecasts) are not valuable if their uncertainty is not quantified. 
-To quantify the uncertainty, we provide prediction intervals that are based on the past behavior of residuals and careful residual diagnostics (such as described in the previous lectures).
+예측된 값(점 예측)은 불확실성이 정량화되지 않으면 가치가 없다는 것을 기억하십시오.
+불확실성을 정량화하기 위해 과거 잔차의 동작과 신중한 잔차 진단(이전 강의에서 설명한 것과 같음)을 기반으로 하는 예측 구간을 제공합니다.
 
-The evaluation of the methods may involve splitting the time series into training and testing periods. 
-Overall, this lecture focused on presenting the methods themselves, while *residual diagnostics* and *evaluation on a testing set* were omitted due to time constraints.
+방법 평가는 시계열을 훈련 기간과 테스트 기간으로 나누는 것을 포함할 수 있습니다.
+전반적으로 이 강의는 방법 자체를 제시하는 데 중점을 두었고 *잔차 진단*과 *테스트 세트에서의 평가*는 시간 제약으로 인해 생략되었습니다.
 
-While the considered methods are among the most common, there are many more smoothing methods that can be applied to time series, including machine learning techniques.
+고려된 방법은 가장 일반적인 방법 중 하나이지만 기계 학습 기법을 포함하여 시계열에 적용할 수 있는 평활화 방법이 훨씬 더 많습니다.
 
 
-## Appendix
+## 부록
 
 ::: {.callout-note icon=false}
 
-## Example: Smoothing blocks
+## 예시: 평활화 블록
 
-A student was concerned about applying smoothing to data with a block-like structure. 
-Without a real dataset on hand, below we simulate a series $X_t$ with the mentioned structure.
+한 학생이 블록과 같은 구조를 가진 데이터에 평활화를 적용하는 것에 대해 우려했습니다.
+실제 데이터 세트가 없으므로 아래에서는 언급된 구조를 가진 계열 $X_t$를 시뮬레이션합니다.
 
 ```{r}
 set.seed(123)
 
-# Set number of blocks
+# 블록 수 설정
 n <- 10 
 
-# Let the values of blocks come from standard normal distribution,
-# and length of block be a random variable generated from Poisson distribution:
+# 블록 값이 표준 정규 분포에서 오고,
+# 블록 길이는 포아송 분포에서 생성된 확률 변수라고 가정합니다.
 Xt <- rep(rnorm(n), times = rpois(n, 5))
 ```
 
-@fig-blocks shows an example of lowess applied to $X_t$ to get a smoothed series $M_t$.
+@fig-blocks는 평활화된 계열 $M_t$를 얻기 위해 $X_t$에 적용된 로위스의 예를 보여줍니다.
 
-We see that lowess estimates *smooth* trends. 
-If we assume that trends are not smooth, then some other techniques (e.g., piecewise linear estimation) should be used.
+로위스가 *평활* 추세를 추정하는 것을 볼 수 있습니다.
+추세가 평활하지 않다고 가정하면 다른 기법(예: 조각별 선형 추정)을 사용해야 합니다.
 
 ```{r}
 #| label: fig-blocks
-#| fig-cap: "Smoothing of the block-like data $X_t$."
+#| fig-cap: "블록과 같은 데이터 $X_t$의 평활화."
 
 t <- c(1:length(Xt))
 ggplot(data.frame(t = t, Xt = Xt), aes(x = t, y = Xt)) + 

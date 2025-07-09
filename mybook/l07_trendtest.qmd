@@ -12,67 +12,67 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Trend Detection {#sec-trendtest}
+# 추세 탐지 {#sec-trendtest}
 
-This lecture demonstrates the effects of autocorrelation on the results of statistical tests for trend detection. 
-You will recall the assumptions of the classical $t$-test and Mann--Kendall tests and will be able to suggest bootstrapped modifications of these tests to overcome the problem of temporal dependence. 
-Moreover, you will become familiar with tests for non-monotonic parametric trends and stochastic trends. 
+이 강의는 추세 탐지를 위한 통계적 검정 결과에 대한 자기 상관의 영향을 보여줍니다.
+고전적인 $t$-검정과 Mann-Kendall 검정의 가정을 상기하고 시간적 의존성 문제를 극복하기 위해 이러한 검정의 부트스트랩 수정 사항을 제안할 수 있게 됩니다.
+또한 비단조적인 매개변수 추세 및 확률적 추세에 대한 검정에 익숙해질 것입니다.
 
-**Objectives**
+**학습 목표**
 
-1. Recall the form and standard assumptions of the classical $t$-test and Mann--Kendall tests.
-1. Learn about bootstrapping for time series, particularly the approaches that preserve temporal dependency in the data (e.g., sieve and block bootstraps).
-1. Apply bootstrap to the $t$-test and Mann--Kendall tests.
-1. Test for non-monotonic parametric trends.
-1. Test for stochastic trends (i.e., unit roots).
+1. 고전적인 $t$-검정과 Mann-Kendall 검정의 형태와 표준 가정을 상기합니다.
+1. 시계열에 대한 부트스트랩, 특히 데이터의 시간적 의존성을 보존하는 접근 방식(예: 체 부트스트랩 및 블록 부트스트랩)에 대해 배웁니다.
+1. $t$-검정과 Mann-Kendall 검정에 부트스트랩을 적용합니다.
+1. 비단조적인 매개변수 추세를 검정합니다.
+1. 확률적 추세(즉, 단위근)를 검정합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapter 8.1 in @Chatterjee:Hadi:2006 and Chapters 5.1--5.2 in @Chatterjee:Simonoff:2013 about the effects of autocorrelation
-* @Buhlmann:2002 on bootstrap for time series
-* Chapter 6.3 in @Brockwell:Davis:2002 on unit-root tests
+* 자기 상관의 영향에 대한 @Chatterjee:Hadi:2006의 8.1장 및 @Chatterjee:Simonoff:2013의 5.1-5.2장
+* 시계열에 대한 부트스트랩에 대한 @Buhlmann:2002
+* 단위근 검정에 대한 @Brockwell:Davis:2002의 6.3장
 
 
-## Introduction
+## 소개
 
-The majority of studies focus on the detection of linear or monotonic trends, using classical $t$-test or rank-based Mann--Kendall test, typically under the assumption of uncorrelated data.
+대부분의 연구는 일반적으로 비상관 데이터의 가정 하에 고전적인 $t$-검정 또는 순위 기반 Mann-Kendall 검정을 사용하여 선형 또는 단조 추세의 탐지에 중점을 둡니다.
 
-There exist two main problems:
+두 가지 주요 문제가 있습니다.
 
-1. dependence effect, i.e., the issue of inflating significance due to dependent observations -- a possible remedy is to employ bootstrap [@Noguchi:etal:2011;@Cabilio:etal:2013];
-1. changepoints or regime shifts that affect the linear or monotonic trend hypothesis
+1. 의존성 효과, 즉 종속 관측치로 인한 유의성 팽창 문제 - 가능한 해결책은 부트스트랩을 사용하는 것입니다[@Noguchi:etal:2011;@Cabilio:etal:2013].
+1. 선형 또는 단조 추세 가설에 영향을 미치는 변화점 또는 체제 전환
 [@Seidel:etal:2004;@Powell:Xu:2011;@Lyubchich:2016:trends].
 
-Hence, our goal is to provide reliable inference even for dependent observations and to test different alternative trend shapes.
+따라서 우리의 목표는 종속 관측치에 대해서도 신뢰할 수 있는 추론을 제공하고 다양한 대체 추세 형태를 검정하는 것입니다.
 
 
-## 'Traditional' tests assuming independence
+## 독립성을 가정하는 '전통적인' 검정
 
-### Student's $t$-test for linear trend
+### 선형 추세에 대한 스튜던트 $t$-검정
 
-The Student's $t$-test for linear trend uses the regression model of linear trend
+선형 추세에 대한 스튜던트 $t$-검정은 선형 추세의 회귀 모형을 사용합니다.
 $$
 Y_t = b_0 + b_1 t + e_t,
 $$
-where $b_0$ and $b_1$ are the regression coefficients, $t$ is time, and $e_t$ are regression errors typically assumed to be homoskedastic, uncorrelated, and normally distributed.
+여기서 $b_0$와 $b_1$은 회귀 계수, $t$는 시간, $e_t$는 일반적으로 등분산성, 비상관성 및 정규 분포를 따르는 것으로 가정되는 회귀 오차입니다.
 
-The test hypotheses are  
+검정 가설은 다음과 같습니다.
 
-$H_0$: no trend ($b_1 = 0$)  
-$H_1$: linear trend ($b_1 \neq 0$)
+$H_0$: 추세 없음 ($b_1 = 0$)
+$H_1$: 선형 추세 ($b_1 \neq 0$)
 
-@fig-ar1sim shows a simulated stationary time series $Y_t \sim \mathrm{AR}(1)$ of length 100 (notice the 'burn-in' period in simulations).
+@fig-ar1sim은 길이 100의 시뮬레이션된 정상 시계열 $Y_t \sim \mathrm{AR}(1)$을 보여줍니다(시뮬레이션에서 '번인' 기간에 유의하십시오).
 
 ```{r}
 #| label: fig-ar1sim
-#| fig-cap: "A simulated stationary AR(1) series of length 100."
+#| fig-cap: "길이 100의 시뮬레이션된 정상 AR(1) 계열."
 
 set.seed(123)
 Y <- arima.sim(list(order = c(1,0,0), ar = 0.5), n = 100, n.start = 100)
 forecast::autoplot(Y)
 ```
 
-Apply the $t$-test to this time series $Y_t$:
+이 시계열 $Y_t$에 $t$-검정을 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -82,45 +82,45 @@ mod <- lm(Y ~ t)
 summary(mod)
 ```
 
-Type I error (false positives) of this test is inflated due to the dependence effect (the assumption of uncorrelatedness is violated). 
-Additionally, this test is limited only to detecting linear trends (see the alternative hypothesis $H_1$).
+이 검정의 제1종 오류(위양성)는 의존성 효과(비상관성 가정이 위반됨)로 인해 팽창됩니다.
+또한 이 검정은 선형 추세만 탐지하는 데 제한됩니다(대안 가설 $H_1$ 참조).
 
 
-### Mann--Kendall test for monotonic trend
+### 단조 추세에 대한 Mann-Kendall 검정
 
-The Mann--Kendall test is based on the Kendall rank correlation and is used to determine if a non-seasonal time series has a monotonic trend over time.
+Mann-Kendall 검정은 Kendall 순위 상관 관계를 기반으로 하며 비계절 시계열이 시간에 따라 단조 추세를 갖는지 여부를 결정하는 데 사용됩니다.
 
-$H_0$: no trend  
-$H_1$: monotonic trend
+$H_0$: 추세 없음
+$H_1$: 단조 추세
 
-Test statistic:
+검정 통계량:
 $$
 S=\sum_{k=1}^{n-1}\sum_{j=k+1}^n sgn(X_j-X_k),
 $$
-where $sgn(x)$ takes on the values of 1, 0, and $-1$, for $x>0$, $x=0$, and $x<0$, respectively.
+여기서 $sgn(x)$는 각각 $x>0$, $x=0$, $x<0$에 대해 1, 0, -1 값을 갖습니다.
 
-@Kendall:1975 showed that $S$ is asymptotically normally distributed and, for the situations where there may be ties in the $X$ values,
+@Kendall:1975는 $S$가 점근적으로 정규 분포를 따르며 $X$ 값에 동률이 있을 수 있는 상황에 대해 다음과 같이 나타냈습니다.
 $$
 \begin{split}
 \mathrm{E}(S) &= 0, \\
 \mathrm{var}(S) &= \frac{1}{18} \left[ n(n-1)(2n+5)-\sum_{j=1}^p t_j(t_j-1)(2t_j+5) \right],
 \end{split}
 $$
-where $p$ is the number of tied groups in the time series, and $t_j$ is the number of data points in the $j$th tied group.
+여기서 $p$는 시계열의 동률 그룹 수이고 $t_j$는 $j$번째 동률 그룹의 데이터 포인트 수입니다.
 
-Its seasonal version is the sum of the statistics for individual seasons over all seasons [@Hirsch:etal:1982]:
+계절 버전은 모든 계절에 걸쳐 개별 계절에 대한 통계량의 합입니다[@Hirsch:etal:1982].
 $$
 S=\sum_{j=1}^m S_j.
 $$
 
-For data sets as small as $n = 2$ and $m = 12$, the normal approximation of the test statistic is adequate and thus the test is easy to use. 
-The method also accommodates both 
+$n = 2$ 및 $m = 12$와 같이 작은 데이터 세트의 경우 검정 통계량의 정규 근사가 적절하므로 검정을 쉽게 사용할 수 있습니다.
+이 방법은 또한 다음 두 가지를 모두 수용합니다.
 
-* a moderate number of missing observations and 
-* values below the detection limit, as the latter are treated as ties [see details in @Esterby:1996].
+* 적당한 수의 결측 관측치 및
+* 탐지 한계 미만 값, 후자는 동률로 처리됨[@Esterby:1996의 세부 정보 참조].
 
-To apply the test, use the package `Kendall`. 
-Also, note the statement about bootstrap in the help file for the function `Kendall::MannKendall()`.
+검정을 적용하려면 `Kendall` 패키지를 사용하십시오.
+또한 함수 `Kendall::MannKendall()`의 도움말 파일에서 부트스트랩에 대한 설명을 참고하십시오.
 
 ```{r}
 #| code-fold: false
@@ -128,156 +128,156 @@ Also, note the statement about bootstrap in the help file for the function `Kend
 Kendall::MannKendall(Y)
 ```
 
-This test is still limited to only monotonic trends and independent observations.
+이 검정은 여전히 단조 추세와 독립적인 관측치에만 제한됩니다.
 
 
-## Introduction to bootstrap
+## 부트스트랩 소개
 
-### Bootstrap for independent data
+### 독립 데이터에 대한 부트스트랩
 
-When some of the statistical assumptions are violated, we may switch to using other methods or try to accommodate these violations by modifying part of the existing method. 
+일부 통계적 가정이 위반되면 다른 방법을 사용하거나 기존 방법의 일부를 수정하여 이러한 위반을 수용하려고 시도할 수 있습니다.
 
-* One of the assumptions of Pearson correlation analysis is the absence of outliers. 
-When outliers are in the data, we can opt for using Spearman correlations based on ranks, not the actual values. 
-Thus, here we *switch the method*.
-* We often use the normal distribution for inference about the population mean because we assume that averages of independent samples coming from the same population are distributed normally. 
-The normal approximation is true for large samples or for small samples if the underlying population is close to being normally distributed. 
-So what happens if we have a small sample from a non-normal population? 
-We do not know the distributional law under which sample means are distributed in this case, but we can *approximate the distribution using bootstrapped statistics*.
+* 피어슨 상관 분석의 가정 중 하나는 이상치 부재입니다.
+데이터에 이상치가 있는 경우 실제 값이 아닌 순위를 기반으로 하는 스피어만 상관 관계를 사용하는 것을 선택할 수 있습니다.
+따라서 여기서는 *방법을 전환*합니다.
+* 동일한 모집단에서 나온 독립 표본의 평균이 정규 분포를 따른다고 가정하기 때문에 모집단 평균에 대한 추론에 정규 분포를 자주 사용합니다.
+정규 근사는 큰 표본 또는 기본 모집단이 정규 분포에 가까운 경우 작은 표본에 대해 참입니다.
+그렇다면 비정규 모집단에서 작은 표본을 얻으면 어떻게 될까요?
+이 경우 표본 평균이 분포하는 분포 법칙을 모르지만 *부트스트랩된 통계량을 사용하여 분포를 근사*할 수 있습니다.
 
-The seminal paper by @Efron:1979 describes bootstrap for i.i.d. data. 
-In two words, the idea is the following: we can relax distributional assumptions and reconstruct the distribution of the sample statistic by *resampling data with replacement* and recalculating the statistic over and over. 
-The resampling step will give us artificial 'new' samples, while the statistics calculated multiple times on those samples will let us approximate the distribution of the statistic of interest.
-Thus, by repeating the resampling and estimation steps many times, we will know how the statistic is distributed, even if the sample is small and not normally distributed.
+@Efron:1979의 중요한 논문은 i.i.d. 데이터에 대한 부트스트랩을 설명합니다.
+간단히 말해서 아이디어는 다음과 같습니다. 분포 가정을 완화하고 *데이터를 복원 추출하여 재표본 추출*하고 통계량을 반복적으로 다시 계산하여 표본 통계량의 분포를 재구성할 수 있습니다.
+재표본 추출 단계는 인공적인 '새로운' 표본을 제공하고 해당 표본에 대해 여러 번 계산된 통계량은 관심 통계량의 분포를 근사할 수 있게 해줍니다.
+따라서 재표본 추출 및 추정 단계를 여러 번 반복하면 표본이 작고 정규 분포를 따르지 않더라도 통계량이 어떻게 분포하는지 알 수 있습니다.
 
-Let $x_i$ ($i = 1, \dots, n$) be sample values collected from a non-normally distributed population using simple random sampling. 
-If the sample size $n$ is small, we cannot be sure that the distribution of sample averages $\bar{x}$ is normal, so we will approximate it using the following bootstrapping steps:
+$x_i$($i = 1, \dots, n$)를 단순 무작위 표본 추출을 사용하여 비정규 분포 모집단에서 수집된 표본 값이라고 합시다.
+표본 크기 $n$이 작으면 표본 평균 $\bar{x}$의 분포가 정규 분포인지 확신할 수 없으므로 다음 부트스트랩 단계를 사용하여 근사합니다.
 
-1. Let $x^*_i$ ($i = 1, \dots, n$) be a sample with a replacement from the original sample $x_i$. 
-This is a way for us, without knowing the underlying distribution of the population and without collecting new data, to get a new artificial sample from the population.
-1. Calculate the mean (or another statistic of interest) from the bootstrapped data. 
-For example, $\bar{x}^* = n^{-1} \sum x^*_i$ is the bootstrapped mean.
-1. Repeat the steps above a large number of times to obtain a distribution of the statistics $\bar{x}^*_1, \dots, \bar{x}^*_B$ (the *bootstrapped distribution*), where $B$ is a large enough number of bootstrap replications. 
-Typically, $B \geqslant 1000$.
-1. Finally, we use the bootstrapped distribution for the intended analysis. 
-It often involves calculating confidence intervals. 
-There are a few ways the intervals can be calculated [see @Davison:Hinkley:1997], some of the methods provide symmetric intervals, while others do not. 
-Probably the simplest is the *percentile confidence interval*, which computes the $\alpha/2$th and $(1-\alpha/2)$th quantiles of the bootstrapped distribution, to get an interval for confidence $1 - \alpha$.
+1. $x^*_i$($i = 1, \dots, n$)를 원래 표본 $x_i$에서 복원 추출한 표본이라고 합시다.
+이는 기본 모집단 분포를 모르고 새로운 데이터를 수집하지 않고도 모집단에서 새로운 인공 표본을 얻는 방법입니다.
+1. 부트스트랩된 데이터에서 평균(또는 다른 관심 통계량)을 계산합니다.
+예를 들어, $\bar{x}^* = n^{-1} \sum x^*_i$는 부트스트랩된 평균입니다.
+1. 위의 단계를 여러 번 반복하여 통계량 $\bar{x}^*_1, \dots, \bar{x}^*_B$의 분포(*부트스트랩된 분포*)를 얻습니다. 여기서 $B$는 충분히 큰 부트스트랩 반복 횟수입니다.
+일반적으로 $B \geqslant 1000$입니다.
+1. 마지막으로 의도한 분석에 부트스트랩된 분포를 사용합니다.
+종종 신뢰 구간 계산이 포함됩니다.
+구간을 계산하는 방법에는 몇 가지가 있으며[@Davison:Hinkley:1997 참조], 일부 방법은 대칭 구간을 제공하는 반면 다른 방법은 그렇지 않습니다.
+아마도 가장 간단한 것은 *백분위수 신뢰 구간*이며, 이는 부트스트랩된 분포의 $\alpha/2$번째 및 $(1-\alpha/2)$번째 분위수를 계산하여 신뢰도 $1 - \alpha$에 대한 구간을 얻습니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Bootstrap confidence interval for the population mean
+## 예시: 모집단 평균에 대한 부트스트랩 신뢰 구간
 
-Consider a small sample of mercury (Hg) concentrations in fish tissue [@Lyubchich:etal:2016:symmetry]. 
-These observations do not constitute a time series; the data were collected in such a way that we can treat the samples as independent.
-@fig-bootHg A shows that the underlying population of Hg concentrations is likely not normally distributed, so we will use bootstrapping to calculate a confidence interval for the mean.
+어류 조직의 수은(Hg) 농도에 대한 작은 표본을 고려하십시오[@Lyubchich:etal:2016:symmetry].
+이러한 관측치는 시계열을 구성하지 않습니다. 데이터는 표본을 독립적으로 처리할 수 있도록 수집되었습니다.
+@fig-bootHg A는 Hg 농도의 기본 모집단이 정규 분포를 따르지 않을 가능성이 높음을 보여주므로 평균에 대한 신뢰 구간을 계산하기 위해 부트스트랩을 사용합니다.
 
 ```{r}
-# Mercury concentrations
+# 수은 농도
 Hg <- c(10.159162, 9.190562, 7.776279, 11.417387, 8.494544, 
         9.948271, 7.865391, 7.412350, 8.112304, 7.541787)
 
-# Set seed for reproducible bootstrapping
+# 재현 가능한 부트스트랩을 위한 시드 설정
 set.seed(123)
 
-# Number of bootstrap replications
+# 부트스트랩 반복 횟수
 B = 1000
 
-# Significance level
+# 유의 수준
 alpha = 0.05
 
-# Compute bootstrapped means (option 1)
+# 부트스트랩된 평균 계산 (옵션 1)
 xbar_star <- numeric()
 for (b in 1:B) {
-    # bootstrapped sample
+    # 부트스트랩된 표본
     Hgstar <- sample(Hg, replace = TRUE)
-    # bootstrapped mean
+    # 부트스트랩된 평균
     xbar_star[b] <- mean(Hgstar)
 }
 
-# Compute bootstrapped means (option 2)
+# 부트스트랩된 평균 계산 (옵션 2)
 xbar_star <- sapply(1:B, function(b) mean(sample(Hg, replace = TRUE)))
 
-# Bootstrap percentile interval for confidence 1 - alpha
+# 신뢰도 1 - alpha에 대한 부트스트랩 백분위수 구간
 interval <- quantile(xbar_star, probs = c(alpha/2, 1 - alpha/2))
 interval
 ```
 
 ```{r}
 #| label: fig-bootHg
-#| fig-cap: "Histograms of the original data and bootstrapped means. The dashed lines denote the bootstrap confidence interval for the mean."
+#| fig-cap: "원본 데이터와 부트스트랩된 평균의 히스토그램. 점선은 평균에 대한 부트스트랩 신뢰 구간을 나타냅니다."
 
 p1 <- ggplot(data.frame(x = Hg), aes(x = x)) + 
     geom_histogram(aes(y = after_stat(density)), 
                    boundary = floor(min(Hg)), binwidth = 1, 
                    fill = "grey50") +
     xlab("Hg (ng/g)") + 
-    ylab("Density") +
-    ggtitle("Hg observations")
+    ylab("밀도") +
+    ggtitle("Hg 관측치")
 p2 <- ggplot(data.frame(x = xbar_star), aes(x = x)) + 
     geom_histogram(aes(y = after_stat(density)), bins = 15, fill = "grey50") +
     geom_vline(xintercept = interval, lty = 2) +
     xlab("Hg (ng/g)") + 
-    ylab("Density") +
-    ggtitle("Bootstrapped means")
+    ylab("밀도") +
+    ggtitle("부트스트랩된 평균")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-The calculated confidence interval can be used in hypothesis testing. 
-Note that the package `boot` provides functions with more options for the calculations.
+계산된 신뢰 구간은 가설 검정에 사용할 수 있습니다.
+`boot` 패키지는 계산에 더 많은 옵션을 제공하는 함수를 제공합니다.
 :::
 
-We cannot apply the outlined bootstrapping directly to time series or spatial data because these data are not i.i.d. and resampling will break the order and dependence structure. 
+이러한 데이터는 i.i.d.가 아니고 재표본 추출이 순서와 의존성 구조를 깨뜨리기 때문에 설명된 부트스트랩을 시계열 또는 공간 데이터에 직접 적용할 수 없습니다.
 
 
-### Bootstrap for time series
+### 시계열에 대한 부트스트랩
 
-To account for the dependence structure, some modifications to the bootstrap procedure were proposed, including block bootstrap and sieve bootstrap [see @Buhlmann:2002 and references therein].
+의존성 구조를 설명하기 위해 블록 부트스트랩 및 체 부트스트랩을 포함하여 부트스트랩 절차에 대한 몇 가지 수정 사항이 제안되었습니다[@Buhlmann:2002 및 그 안의 참고 문헌 참조].
 
-While the bootstrap for independent data generates samples that mimic the underlying population distribution, the bootstrap for time series also aims to mimic or preserve the dependence structure of the time series.
-Hence, the first step of the outlined bootstrapping algorithm should be modified so that the generated bootstrapped samples preserve the dependence structure that we want to accommodate in our analysis.
-For example, if we want to accommodate serial dependence in the $t$-test, the bootstrapped time series should be autocorrelated similarly to the original series, so we can approximate the distribution of the test statistic when the assumption of independence is violated.
+독립 데이터에 대한 부트스트랩은 기본 모집단 분포를 모방하는 표본을 생성하는 반면, 시계열에 대한 부트스트랩은 시계열의 의존성 구조를 모방하거나 보존하는 것을 목표로 합니다.
+따라서 설명된 부트스트랩 알고리즘의 첫 번째 단계는 생성된 부트스트랩된 표본이 분석에서 수용하려는 의존성 구조를 보존하도록 수정되어야 합니다.
+예를 들어, $t$-검정에서 계열 의존성을 수용하려면 부트스트랩된 시계열이 원래 계열과 유사하게 자기 상관되어야 하므로 독립성 가정이 위반될 때 검정 통계량의 분포를 근사할 수 있습니다.
 
-**Block bootstrap** works for general stationary time series or categorical series (e.g., genetic sequences).
-In the simplest version of the algorithm, the observed time series of length $n$ is used to create overlapping blocks of fixed length $l$, which are then resampled with replacement to create a bootstrapped time series.
-To match the original sample size, the last block entering the bootstrapped series can be truncated.
-By resampling blocks rather than individual observations, we preserve the original dependence structure within each block [@Buhlmann:2002;@Hardle:etal:2003].
+**블록 부트스트랩**은 일반적인 정상 시계열 또는 범주형 계열(예: 유전 서열)에 대해 작동합니다.
+알고리즘의 가장 간단한 버전에서는 길이 $n$의 관찰된 시계열을 사용하여 고정 길이 $l$의 겹치는 블록을 만들고, 이를 복원 추출하여 부트스트랩된 시계열을 만듭니다.
+원래 표본 크기와 일치시키기 위해 부트스트랩된 계열에 들어가는 마지막 블록은 잘릴 수 있습니다.
+개별 관찰이 아닌 블록을 재표본 추출함으로써 각 블록 내의 원래 의존성 구조를 보존합니다[@Buhlmann:2002;@Hardle:etal:2003].
 
-Other versions of this algorithm include non-overlapping blocks and blocks of random length $l$ sampled from the geometric distribution (the latter version is also known as the *stationary bootstrap*), but these versions often show poorer performance [@Buhlmann:2002;@Hardle:etal:2003].
+이 알고리즘의 다른 버전에는 겹치지 않는 블록과 기하 분포에서 표본 추출된 무작위 길이 $l$의 블록(후자 버전은 *정상 부트스트랩*이라고도 함)이 포함되지만 이러한 버전은 종종 성능이 떨어집니다[@Buhlmann:2002;@Hardle:etal:2003].
 
-The block length $l$ should be adjusted each time to the statistic of interest, data generating process, and purpose of the estimation, such as distribution, bias, or variance estimation [@Buhlmann:2002].
-In other words, $l$ is the algorithm's major tuning parameter that is difficult to select automatically.
-@Buhlmann:2002 also points out the lack of good interpretations and reliable diagnostic tools for the block length $l$.
+블록 길이 $l$은 관심 통계량, 데이터 생성 프로세스 및 분포, 편향 또는 분산 추정과 같은 추정 목적에 맞게 매번 조정해야 합니다[@Buhlmann:2002].
+즉, $l$은 자동으로 선택하기 어려운 알고리즘의 주요 조정 매개변수입니다.
+@Buhlmann:2002는 또한 블록 길이 $l$에 대한 좋은 해석과 신뢰할 수 있는 진단 도구의 부족을 지적합니다.
 
-**Sieve bootstrap** generally works for time series that are realizations of linear AR($\infty$) processes [@Buhlmann:2002], with more recent research extending the method to all stationary purely nondeterministic processes [@Kreiss:etal:2011].
-In this algorithm, an autoregressive (AR) model acts as a sieve by approximating the dependence structure and letting through only the i.i.d. residuals $\epsilon_t$.
-We then center (subtract mean) and resample with replacement the residuals (there is no more structure we need to preserve after the sieve, so this bootstrap step is no different from resampling i.i.d. data).
-We introduce these bootstrapped residuals $\epsilon^*_t$ back into the AR($\hat{p}$) model to obtain a bootstrapped time series $X_t^*$:
+**체 부트스트랩**은 일반적으로 선형 AR($\infty$) 프로세스의 실현인 시계열에 대해 작동하며[@Buhlmann:2002], 최근 연구에서는 이 방법을 모든 정상 순수 비결정론적 프로세스로 확장했습니다[@Kreiss:etal:2011].
+이 알고리즘에서 자기회귀(AR) 모형은 의존성 구조를 근사하고 i.i.d. 잔차 $\epsilon_t$만 통과시키는 체 역할을 합니다.
+그런 다음 잔차를 중심화(평균 빼기)하고 복원 추출하여 재표본 추출합니다(체 이후에는 보존해야 할 구조가 더 이상 없으므로 이 부트스트랩 단계는 i.i.d. 데이터 재표본 추출과 다르지 않음).
+이러한 부트스트랩된 잔차 $\epsilon^*_t$를 AR($\hat{p}$) 모형에 다시 도입하여 부트스트랩된 시계열 $X_t^*$를 얻습니다.
 $$
 X_t^* = \sum_{j=1}^{\hat{p}} \hat{\phi}_j X^*_{t-j} + \epsilon^*_t,
 $$
-where $\hat{\phi}_j$ are the AR coefficients, estimated on the original time series $X_t$, and $\hat{p}$ is the selected AR order.
-The order $p$ is the main tuning parameter in this algorithm, but as @Buhlmann:2002 points out, it has several advantages compared with the block length in block bootstrap:
+여기서 $\hat{\phi}_j$는 원래 시계열 $X_t$에서 추정된 AR 계수이고 $\hat{p}$는 선택된 AR 차수입니다.
+차수 $p$는 이 알고리즘의 주요 조정 매개변수이지만 @Buhlmann:2002가 지적했듯이 블록 부트스트랩의 블록 길이에 비해 몇 가지 장점이 있습니다.
 
-* The order $\hat{p}$ can be selected using the Akaike information criterion (AIC) or Bayesian information criterion (BIC) based on the available data, which means the method adapts to the sample size and underlying dependence structure.
-* The AR order is more interpretable than the block length.
-* There exist diagnostic procedures to check how good is the selected $\hat{p}$, for example, graphs and tests for remaining autocorrelation in the AR($\hat{p}$) residuals $\epsilon_t$.
+* 차수 $\hat{p}$는 사용 가능한 데이터를 기반으로 아카이케 정보 기준(AIC) 또는 베이즈 정보 기준(BIC)을 사용하여 선택할 수 있으며, 이는 방법이 표본 크기 및 기본 의존성 구조에 적응함을 의미합니다.
+* AR 차수는 블록 길이보다 해석하기 쉽습니다.
+* 예를 들어 AR($\hat{p}$) 잔차 $\epsilon_t$의 나머지 자기 상관에 대한 그래프 및 검정과 같이 선택된 $\hat{p}$가 얼마나 좋은지 확인하는 진단 절차가 존재합니다.
 
-Other versions of sieve bootstrap include options of obtaining $\epsilon^*_t$ from a parametric distribution (e.g., normal distribution with the mean of 0 and variance matching that of $\epsilon_t$) or nonparametrically estimated probability density (e.g., using kernel smoothing) for incorporating additional variability in the data.
+체 부트스트랩의 다른 버전에는 $\epsilon^*_t$를 매개변수 분포(예: 평균이 0이고 $\epsilon_t$의 분산과 일치하는 분산을 갖는 정규 분포) 또는 데이터의 추가 변동성을 통합하기 위해 비모수적으로 추정된 확률 밀도(예: 커널 평활 사용)에서 얻는 옵션이 포함됩니다.
 
 
-## Bootstrapped tests for trend detection in time series
+## 시계열의 추세 탐지를 위한 부트스트랩된 검정
 
-### Bootstrapped $t$-test and Mann--Kendall test
+### 부트스트랩된 $t$-검정 및 Mann-Kendall 검정
 
-@Noguchi:etal:2011 enhanced the classical $t$-test and Mann--Kendall trend test with sieve bootstrap approaches that take into account the serial correlation of data to obtain more accurate and reliable estimates.
-While taking into account the dependence structure in the data, these tests are still limited to the linear or monotonic case:
+@Noguchi:etal:2011은 데이터의 계열 상관 관계를 고려하여 보다 정확하고 신뢰할 수 있는 추정치를 얻기 위해 체 부트스트랩 접근 방식을 사용하여 고전적인 $t$-검정 및 Mann-Kendall 추세 검정을 향상시켰습니다.
+데이터의 의존성 구조를 고려하면서 이러한 검정은 여전히 선형 또는 단조적인 경우로 제한됩니다.
 
-$H_0$: no trend  
-$H_1$: linear trend ($t$-test) or monotonic trend (Mann--Kendall test)
+$H_0$: 추세 없음
+$H_1$: 선형 추세($t$-검정) 또는 단조 추세(Mann-Kendall 검정)
 
-Apply the sieve-bootstrapped tests to our time series data, using the package `funtimes`:
+`funtimes` 패키지를 사용하여 시계열 데이터에 체 부트스트랩된 검정을 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -286,53 +286,52 @@ funtimes::notrend_test(Y, ar.method = "yw")
 funtimes::notrend_test(Y, test = "MK", ar.method = "yw")
 ```
 
-Notice the different $p$-values from the first time we applied the tests without the bootstrap.
+부트스트랩 없이 검정을 처음 적용했을 때와 다른 $p$-값을 주목하십시오.
 
 
-### Detecting non-monotonic trends {#sec-WAVK}
+### 비단조 추세 탐지 {#sec-WAVK}
 
-Consider a time series 
+시계열을 고려하십시오.
 $$
 Y_t = \mu(t) + \epsilon_t,
 $$ {#eq-WAVKtrend}
-where $t=1, \dots, n$, $\mu(t)$ is an unknown trend function, and $\epsilon_t$
-is a weakly stationary time series.
+여기서 $t=1, \dots, n$, $\mu(t)$는 알 수 없는 추세 함수이고 $\epsilon_t$는 약하게 정상인 시계열입니다.
 
-We would like to test the hypotheses
+다음 가설을 검정하고 싶습니다.
 
-$H_0$: $\mu(t)=f(\theta, t)$  
+$H_0$: $\mu(t)=f(\theta, t)$
 $H_1$: $\mu(t)\neq f(\theta,t)$,
 
-where the function $f(\cdot, t)$ belongs to a known family of smooth parametric functions $S=\bigl\{f(\theta, \cdot), \theta\in \Theta \bigr\}$ and $\Theta$ is a set of possible parameter values and a subset of Euclidean space.
+여기서 함수 $f(\cdot, t)$는 알려진 평활 매개변수 함수 계열 $S=\bigl\{f(\theta, \cdot), \theta\in \Theta \bigr\}$에 속하고 $\Theta$는 가능한 매개변수 값 집합이자 유클리드 공간의 부분 집합입니다.
 
-Special cases include
+특별한 경우로는 다음이 있습니다.
 
-* no trend (constant trend) $f(\theta,t)\equiv 0$,
-* linear trend $f(\theta,t)=\theta_0+\theta_1 t$, and  
-* quadratic trend $f(\theta,t)=\theta_0+\theta_1 t+\theta_2t^2$.
+* 추세 없음(일정한 추세) $f(\theta,t)\equiv 0$,
+* 선형 추세 $f(\theta,t)=\theta_0+\theta_1 t$, 및
+* 이차 추세 $f(\theta,t)=\theta_0+\theta_1 t+\theta_2t^2$.
 
-The following local regression or the local factor test statistic was developed by @Wang:etal:2008 to be applied to pre-filtered observations replicating the residuals $\epsilon_t$ in @eq-WAVKtrend. 
-The idea is to extract the hypothesized trend $f(\theta,t)$ and group residual consecutive in time into small groups. 
-Then, apply the ANOVA $F$-test for these artificial groups:
+다음 국소 회귀 또는 국소 요인 검정 통계량은 @Wang:etal:2008에 의해 개발되었으며 @eq-WAVKtrend의 잔차 $\epsilon_t$를 복제하는 사전 필터링된 관측치에 적용됩니다.
+아이디어는 가설화된 추세 $f(\theta,t)$를 추출하고 시간적으로 연속적인 잔차를 작은 그룹으로 그룹화하는 것입니다.
+그런 다음 이러한 인공 그룹에 대해 ANOVA $F$-검정을 적용합니다.
 $$
 \begin{split}
 \mathrm{WAVK}_n&= F_n=\frac{\mathrm{MST}}{\mathrm{MSE}} \\
 &= \frac{k_n}{n-1}\sum_{i=1}^n{\left( \overline{V}_{i.}-\overline{V}_{..}\right)^2\Big/ \frac{1}{n(k_n-1)}\sum_{i=1}^n\sum_{j=1}^{k_n}{\left(V_{ij}-\overline{V}_{i.}\right)^2}},
 \end{split}
 $$
-where MST is the treatment sum of squares, MSE is the error sum of squares, $\{V_{i1}, \dots, V_{ik_n}\}$ is $k_n$ pre-filtered observations in the $i$th group, $\overline{V}_{i.}$ is the mean of the $i$th group, $\overline{V}_{..}$ is the grand mean.
+여기서 MST는 처리 제곱합, MSE는 오차 제곱합, $\{V_{i1}, \dots, V_{ik_n}\}$은 $i$번째 그룹의 $k_n$개 사전 필터링된 관측치, $\overline{V}_{i.}$는 $i$번째 그룹의 평균, $\overline{V}_{..}$는 전체 평균입니다.
 
-Both $n\to \infty$ and $k_n\to \infty$; $\rm{MSE}\to$ constant. 
-Hence, we can consider $\sqrt{n}(\rm{MST}-\rm{MSE})$ instead of $\sqrt{n}(F_n-1)$.
+$n\to \infty$ 및 $k_n\to \infty$ 모두; $\rm{MSE}\to$ 상수.
+따라서 $\sqrt{n}(F_n-1)$ 대신 $\sqrt{n}(\rm{MST}-\rm{MSE})$를 고려할 수 있습니다.
 
-@Lyubchich:etal:2013:wavk extended the WAVK approach:
+@Lyubchich:etal:2013:wavk는 WAVK 접근 방식을 확장했습니다.
 
-1. Showed that the structure of time series errors can be a linear process that is allowed not to degenerate to MA($q$) or AR($p$), or a conditionally heteroskedastic or GARCH process.
-1. Developed a data-driven bootstrap procedure to estimate the finite sample properties of the WAVK test under the unknown dependence structure.
-1. Proposed to estimate the optimal size of local windows $k_n$ by employing the nonparametric resampling $m$-out-of-$n$ selection algorithm of @Bickel:etal:1997.
+1. 시계열 오차의 구조가 MA($q$) 또는 AR($p$)로 축퇴하지 않는 선형 프로세스이거나 조건부 이분산성 또는 GARCH 프로세스일 수 있음을 보였습니다.
+1. 알 수 없는 의존성 구조 하에서 WAVK 검정의 유한 표본 속성을 추정하기 위한 데이터 기반 부트스트랩 절차를 개발했습니다.
+1. @Bickel:etal:1997의 비모수적 재표본 추출 $m$-out-of-$n$ 선택 알고리즘을 사용하여 국소 창의 최적 크기 $k_n$을 추정할 것을 제안했습니다.
 
-The WAVK test is implemented in the package `funtimes` with the same sieve bootstrap as the $t$-test and Mann--Kendall test. 
-It tests the null hypothesis of no trend vs. the alternative of (non)monotonic trend.
+WAVK 검정은 $t$-검정 및 Mann-Kendall 검정과 동일한 체 부트스트랩을 사용하여 `funtimes` 패키지에 구현되어 있습니다.
+추세 없음의 귀무 가설 대 (비)단조 추세의 대안 가설을 검정합니다.
 
 ```{r}
 #| code-fold: false
@@ -340,83 +339,83 @@ It tests the null hypothesis of no trend vs. the alternative of (non)monotonic t
 funtimes::notrend_test(Y, test = "WAVK", ar.method = "yw")
 ```
 
-Also, the version of the test with the hybrid bootstrap by @Lyubchich:etal:2013:wavk is available. 
-This version allows the user to specify different alternatives.
+또한 @Lyubchich:etal:2013:wavk의 하이브리드 부트스트랩을 사용한 검정 버전도 사용할 수 있습니다.
+이 버전을 사용하면 사용자가 다른 대안을 지정할 수 있습니다.
 
 ```{r}
 #| code-fold: false
 
-# The null hypothesis is the same as above, no trend (constant trend)
+# 귀무 가설은 위와 동일하며 추세 없음(일정한 추세)입니다.
 funtimes::wavk_test(Y ~ 1, 
                     factor.length = "adaptive.selection", 
                     ar.method = "yw", 
                     out = TRUE)
 
-# The null hypothesis is a quadratic trend
+# 귀무 가설은 이차 추세입니다.
 funtimes::wavk_test(Y ~ poly(t, 2), 
                     factor.length = "adaptive.selection", 
                     ar.method = "yw", 
                     out = TRUE)
 ```
 
-For the application of this test to multiple time series, see @sec-syncparam.
+여러 시계열에 대한 이 검정의 적용은 @sec-syncparam을 참조하십시오.
 
 ::: {.callout-note}
-Statistical test results depend on the alternative hypothesis. 
-Sometimes the null hypothesis cannot be rejected in favor of the alternative hypothesis because the data do not match the specified alternative. 
-For example, there are numerous examples when in Pearson correlation analysis the null hypothesis of independence cannot be rejected in favor of the alternative hypothesis of linear dependence because the underlying nonlinear dependence cannot be described as a linear relationship.
-See [this vignette](https://cran.r-project.org/web/packages/funtimes/vignettes/trendtests.html) describing a few similar cases for the time series. 
+통계적 검정 결과는 대안 가설에 따라 달라집니다.
+때로는 데이터가 지정된 대안과 일치하지 않기 때문에 대안 가설을 지지하여 귀무 가설을 기각할 수 없습니다.
+예를 들어, 피어슨 상관 분석에서 기본 비선형 의존성을 선형 관계로 설명할 수 없기 때문에 선형 의존성의 대안 가설을 지지하여 독립성 귀무 가설을 기각할 수 없는 수많은 예가 있습니다.
+시계열에 대한 몇 가지 유사한 사례를 설명하는 [이 비네트](https://cran.r-project.org/web/packages/funtimes/vignettes/trendtests.html)를 참조하십시오.
 :::
 
 
-## Unit roots
+## 단위근
 
-By now, we have been identifying the order of integration (if a process $X_t \sim$ I($d$)) by looking at the time series plot of $X_t$ and (largely) by looking at the plot of sample ACF. 
-We differenced time series again and again until we saw a stable mean in the time series plot and a rapid (compared with linear), exponential-like decline in ACF. 
-Here, we present a hypothesis testing approach originally suggested by @Dickey:Fuller:1979 (*Dickey--Fuller test*).
+지금까지 $X_t$의 시계열 그림과 (대부분) 표본 ACF 그림을 보고 누적 차수(프로세스 $X_t \sim$ I($d$)인 경우)를 식별해 왔습니다.
+시계열 그림에서 안정적인 평균과 ACF에서 선형에 비해 빠른 지수적 감쇠를 볼 때까지 시계열을 반복적으로 차분했습니다.
+여기서는 원래 @Dickey:Fuller:1979(*Dickey-Fuller 검정*)가 제안한 가설 검정 접근 방식을 제시합니다.
 
-Let $X_1, \dots, X_n$ be observations from an AR(1) model:
+$X_1, \dots, X_n$을 AR(1) 모형의 관측치라고 합시다.
 $$
 \begin{split}
 X_t-\mu & =\phi_1(X_{t-1}-\mu) + Z_t, \\
 Z_t &\sim \mathrm{WN}(0,\sigma^2),
 \end{split}
 $$
-where $|\phi_1|<1$ and $\mu=\mathrm{E}X_t$. For a large sample size $n$, the maximum likelihood estimator $\hat{\phi_1}$ of $\phi_1$ is approximately $N(\phi_1, (1-\phi^2_1)/n)$. 
-However, for the unit root case, this approximation is not valid! 
-Thus, do not be tempted to use the normal approximation to construct a confidence interval for $\phi_1$ and check if it includes the value 1. 
-Instead, consider a model that assumes a unit root ($H_0$: unit root is present) and immediately removes it by differencing:
+여기서 $|\phi_1|<1$이고 $\mu=\mathrm{E}X_t$입니다. 큰 표본 크기 $n$에 대해 $\phi_1$의 최대 우도 추정량 $\hat{\phi_1}$은 근사적으로 $N(\phi_1, (1-\phi^2_1)/n)$입니다.
+그러나 단위근의 경우 이 근사는 유효하지 않습니다!
+따라서 정규 근사를 사용하여 $\phi_1$에 대한 신뢰 구간을 구성하고 값 1을 포함하는지 확인하려고 하지 마십시오.
+대신 단위근을 가정하는 모형($H_0$: 단위근 존재)을 고려하고 차분을 통해 즉시 제거하십시오.
 $$
 \begin{split}
 \Delta X_t = X_t - X_{t-1} &= \phi^*_0 + \phi^*_1X_{t-1}+Z_t,\\
 Z_t & \sim {\rm WN}(0,\sigma^2),
 \end{split}
 $${#eq-DFtest}
-where $\phi^*_0=\mu(1-\phi_1)$ and $\phi_1^*=\phi_1 -1$. 
-Let $\hat{\phi}_1^*$ be the OLS estimator of $\phi_1^*$, with its standard error estimated as
+여기서 $\phi^*_0=\mu(1-\phi_1)$이고 $\phi_1^*=\phi_1 -1$입니다.
+$\hat{\phi}_1^*$을 $\phi_1^*$의 OLS 추정량이라고 하고 표준 오차는 다음과 같이 추정됩니다.
 $$
 \widehat{\mathrm{SE}}\left( \hat{\phi}_1^* \right)
 = S\left( \sum_{t=2}^n \left(X_{t-1}-\bar{X} \right)^2 \right)^{-1/2},
 $$
-where $S^2=\sum_{t=2}^n\left( \Delta X_t - \hat{\phi}_0^* - \hat{\phi}_1^*X_{t-1}\right)^2/(n-3)$ and $\bar{X}$ is the sample mean. 
-@Dickey:Fuller:1979 derived the limit distribution of the test statistic
+여기서 $S^2=\sum_{t=2}^n\left( \Delta X_t - \hat{\phi}_0^* - \hat{\phi}_1^*X_{t-1}\right)^2/(n-3)$이고 $\bar{X}$는 표본 평균입니다.
+@Dickey:Fuller:1979는 검정 통계량의 극한 분포를 유도했습니다.
 $$
 \hat{\tau}_{\mu}=\frac{\hat{\phi}_1^*}{\widehat{\mathrm{SE}}\left( \hat{\phi}_1^* \right)},
 $$
-so we know the critical levels from this distribution (the 0.01, 0.05, and 0.10 quantiles are $-3.43$, $-2.86$, and $-2.57$, respectively) and can test the null hypothesis of $\phi_1^*=0$ (notice the similarity with the usual $t$-test for significance of regression coefficients). 
-An important thing to remember is that the $H_0$ here assumes a unit root (nonstationarity).
+따라서 이 분포에서 임계 수준을 알 수 있으며(0.01, 0.05 및 0.10 분위수는 각각 -3.43, -2.86 및 -2.57임) $\phi_1^*=0$의 귀무 가설을 검정할 수 있습니다(회귀 계수의 유의성에 대한 일반적인 $t$-검정과의 유사성에 유의하십시오).
+기억해야 할 중요한 점은 여기서 $H_0$는 단위근(비정상성)을 가정한다는 것입니다.
 
-For a more general AR($p$) model, statistic $\hat{\tau}_{\mu}$ has a similar form (the $\phi_1^*$ is different: $\phi_1^* = \sum_{i=1}^p\phi_i -1$), and the test is then called the *Augmented Dickey--Fuller test* (ADF test). 
-The order $p$ can be specified in advance or selected automatically using AIC or BIC.
+더 일반적인 AR($p$) 모형의 경우 통계량 $\hat{\tau}_{\mu}$는 유사한 형태를 갖습니다($\phi_1^*$는 다름: $\phi_1^* = \sum_{i=1}^p\phi_i -1$). 이 경우 검정을 *확장 Dickey-Fuller 검정*(ADF 검정)이라고 합니다.
+차수 $p$는 미리 지정하거나 AIC 또는 BIC를 사용하여 자동으로 선택할 수 있습니다.
 
-Another popular test for unit roots, the *Phillips--Perron test* (PP test), is built on the ADF test and considers the same null hypothesis.
+단위근에 대한 또 다른 인기 있는 검정인 *Phillips-Perron 검정*(PP 검정)은 ADF 검정을 기반으로 하며 동일한 귀무 가설을 고려합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: ADF test applied to simulated data
+## 예시: 시뮬레이션된 데이터에 적용된 ADF 검정
 
-Simulate a time series $Y_t \sim$ I(2) and apply the rule of thumb approach of taking differences (@fig-YDiff).
-The results in @fig-YDiff show that two differences are enough to remove the trend ($d = 2$).
+시계열 $Y_t \sim$ I(2)를 시뮬레이션하고 차분을 취하는 경험 법칙 접근 방식을 적용합니다(@fig-YDiff).
+@fig-YDiff의 결과는 추세를 제거하기에 두 번의 차분이면 충분함을 보여줍니다($d = 2$).
 
 ```{r}
 set.seed(123)
@@ -426,27 +425,27 @@ Yt <- ts(cumsum(cumsum(Z)))
 
 ```{r}
 #| label: fig-YDiff
-#| fig-cap: "Time series and ACF plots for identifying the order of differences $d$ of the simulated time series."
+#| fig-cap: "시뮬레이션된 시계열의 차분 차수 $d$를 식별하기 위한 시계열 및 ACF 그림."
 #| fig-height: 9
 
-# Apply first-order (non-seasonal) differences
+# 1차(비계절) 차분 적용
 D1 <- diff(Yt)
 
-# Apply first-order (non-seasonal) differences again
+# 다시 1차(비계절) 차분 적용
 D2 <- diff(D1)
 
 p1 <- forecast::autoplot(Yt) + 
-    ylab("Original") + 
+    ylab("원본") +
     ggtitle("Yt")
 p2 <- forecast::ggAcf(Yt) + 
     ggtitle("Yt")
 p3 <- forecast::autoplot(D1) + 
-    ylab("First differences") + 
+    ylab("1차 차분") +
     ggtitle("(1-B)Yt")
 p4 <- forecast::ggAcf(D1) + 
     ggtitle("(1-B)Yt")
 p5 <- forecast::autoplot(D2) + 
-    ylab("Second differences") + 
+    ylab("2차 차분") +
     ggtitle("(1-B)2Yt")
 p6 <- forecast::ggAcf(D2) + 
     ggtitle("(1-B)2Yt")
@@ -454,7 +453,7 @@ p6 <- forecast::ggAcf(D2) +
     plot_annotation(tag_levels = 'A')
 ```
 
-Now apply the test, potentially several times, to identify the order $d$.
+이제 차수 $d$를 식별하기 위해 잠재적으로 여러 번 검정을 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -462,8 +461,8 @@ Now apply the test, potentially several times, to identify the order $d$.
 tseries::adf.test(Yt)
 ```
 
-With the high $p$-value, we cannot reject the $H_0$ of a unit root. 
-Apply the test again on the differenced series.
+$p$-값이 높으므로 단위근의 $H_0$를 기각할 수 없습니다.
+차분된 계열에 검정을 다시 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -471,8 +470,8 @@ Apply the test again on the differenced series.
 tseries::adf.test(diff(Yt))
 ```
 
-Same result. 
-Difference once more and re-apply the test.
+동일한 결과입니다.
+한 번 더 차분하고 검정을 다시 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -480,14 +479,14 @@ Difference once more and re-apply the test.
 tseries::adf.test(diff(Yt, differences = 2))
 ```
 
-Now, when we are using the twice differenced series $\Delta^2 Y_t=(1-B)^2Y_t$, we can reject the $H_0$ and accept the alternative hypothesis of stationarity. 
-Since the time series has been differenced twice, we state that the integration order $d=2$, or $Y_t \sim$ I(2).
+이제 두 번 차분된 계열 $\Delta^2 Y_t=(1-B)^2Y_t$를 사용하면 $H_0$를 기각하고 정상성의 대안 가설을 수용할 수 있습니다.
+시계열이 두 번 차분되었으므로 누적 차수 $d=2$ 또는 $Y_t \sim$ I(2)라고 합니다.
 
-What are the potential problems? 
-Multiple testing and alternative model specifications. 
-By model, we mean the regression @eq-DFtest that includes the parameter $\phi_1^*$ that we are testing. 
-Depending on what we know or assume about the process, we may add an intercept or even a parametric trend. 
-In R, it can be done manually or with functions from the package `urca`:
+잠재적인 문제는 무엇입니까?
+다중 검정 및 대체 모형 사양입니다.
+모형이란 우리가 검정하는 매개변수 $\phi_1^*$를 포함하는 회귀 @eq-DFtest를 의미합니다.
+프로세스에 대해 알고 있거나 가정하는 내용에 따라 절편 또는 매개변수 추세를 추가할 수 있습니다.
+R에서는 수동으로 또는 `urca` 패키지의 함수를 사용하여 수행할 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -501,8 +500,8 @@ ADF <- ur.df(diff(Yt, differences = 2), type = "drift", selectlags = "AIC")
 summary(ADF)
 ```
 
-From the results above, the inclusion of the intercept (`"drift"`) in the test model did not affect the conclusion. 
-Now try adding a trend (`type = "trend"` adds the intercept automatically).
+위의 결과에서 검정 모형에 절편(`"drift"`)을 포함해도 결론에는 영향을 미치지 않았습니다.
+이제 추세를 추가해 보겠습니다(`type = "trend"`는 절편을 자동으로 추가함).
 
 ```{r}
 #| code-fold: false
@@ -515,28 +514,28 @@ ADF <- ur.df(diff(Yt, differences = 2), type = "trend", selectlags = "AIC")
 summary(ADF)
 ```
 
-In this simulated example, misspecification of the testing model did not change our conclusion that $X_t \sim$ I(2), due to the automatic adjusting of the critical values `tau` to `tau2` (model with intercept) and `tau3` (model with trend).
+이 시뮬레이션된 예에서 검정 모형의 잘못된 사양은 임계값 `tau`를 `tau2`(절편이 있는 모형) 및 `tau3`(추세가 있는 모형)으로 자동 조정하여 $X_t \sim$ I(2)라는 결론을 변경하지 않았습니다.
 :::
 
 
-### ADF and PP test problems
+### ADF 및 PP 검정 문제
 
-The ADF and PP tests are asymptotically equivalent but may differ substantially in finite samples due to the different ways in which they correct for serial correlation in the test regression.
+ADF 및 PP 검정은 점근적으로 동일하지만 검정 회귀에서 계열 상관 관계를 수정하는 방식이 다르기 때문에 유한 표본에서 상당히 다를 수 있습니다.
 
-In general, the ADF and PP tests have very low power against I(0) alternatives that are close to being I(1). 
-That is, unit root tests cannot distinguish highly persistent stationary processes from nonstationary processes very well. 
-Also, the power of unit root tests diminishes as deterministic terms are added to the test regressions. 
-Tests that include a constant and trend in the test regression have less power than tests that only include a constant in the test regression.
+일반적으로 ADF 및 PP 검정은 I(1)에 가까운 I(0) 대안에 대해 매우 낮은 검정력을 갖습니다.
+즉, 단위근 검정은 매우 지속적인 정상 프로세스와 비정상 프로세스를 잘 구별할 수 없습니다.
+또한 단위근 검정의 검정력은 검정 회귀에 결정론적 항이 추가됨에 따라 감소합니다.
+검정 회귀에 상수와 추세를 포함하는 검정은 검정 회귀에 상수만 포함하는 검정보다 검정력이 낮습니다.
 
 
-## Conclusion
+## 결론
 
-Temporal dependence of time series is the most violated assumption of classical tests often employed for detecting trends, including the nonparametric Mann--Kendall test. 
-However, multiple workarounds exist that allow the analyst to relax (avoid) the assumption of independence and provide more reliable inference. 
-We have implemented sieve bootstrapping for time series as one such workaround.
+시계열의 시간적 의존성은 비모수적 Mann-Kendall 검정을 포함하여 추세 탐지에 자주 사용되는 고전적인 검정의 가장 많이 위반되는 가정입니다.
+그러나 분석가가 독립성 가정을 완화(회피)하고 보다 신뢰할 수 있는 추론을 제공할 수 있도록 하는 여러 해결 방법이 존재합니다.
+이러한 해결 방법 중 하나로 시계열에 대한 체 부트스트랩을 구현했습니다.
 
-Test results depend on the specified alternative hypothesis. 
-Remember that non-rejection of the null hypothesis doesn't make it automatically true.
+검정 결과는 지정된 대안 가설에 따라 달라집니다.
+귀무 가설을 기각하지 않는다고 해서 자동으로 참이 되는 것은 아니라는 점을 기억하십시오.
 
-When testing for unit roots (integration) in time series, the null hypothesis of ADF and PP tests is the unit root, while the alternative is the stationarity of the tested series.
-Iterative testing and differencing can be used to identify the order of integration $d$.
+시계열의 단위근(누적)을 검정할 때 ADF 및 PP 검정의 귀무 가설은 단위근이고 대안 가설은 검정된 계열의 정상성입니다.
+반복적인 검정 및 차분을 사용하여 누적 차수 $d$를 식별할 수 있습니다.
