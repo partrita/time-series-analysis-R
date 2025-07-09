@@ -12,48 +12,48 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Generalized Autoregressive Conditional Heteroskedasticity (GARCH) Models {#sec-GARCH}
+# 일반화 자기회귀 조건부 이분산성 (GARCH) 모형 {#sec-GARCH}
 
-The goal of this lecture is to introduce a class of models with conditional heteroskedasticity for stationary time series. 
-You will be able to recognize the presence of such heteroskedasticity from graphs or statistical tests and model it.
+이 강의의 목표는 정상 시계열에 대한 조건부 이분산성을 갖는 모형 클래스를 소개하는 것입니다.
+그래프나 통계적 검정을 통해 이러한 이분산성의 존재를 인식하고 모델링할 수 있게 될 것입니다.
 
-**Objectives**
+**학습 목표**
 
-1. List features of ARCH recognizable from plots.
-1. Diagnose ARCH effects using a statistical test.
-1. Define ARCH($p$) and GARCH($p, q$) models and identify the orders $p$ and $q$.
-1. Estimate the models and generate forecasts.
-1. Discuss further extensions of the models.
+1. 그림에서 인식할 수 있는 ARCH의 특징을 나열합니다.
+1. 통계적 검정을 사용하여 ARCH 효과를 진단합니다.
+1. ARCH($p$) 및 GARCH($p, q$) 모형을 정의하고 차수 $p$와 $q$를 식별합니다.
+1. 모형을 추정하고 예측을 생성합니다.
+1. 모형의 추가 확장에 대해 논의합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapter 7 in @Kirchgassner:Wolters:2007
-
-
-## Introduction
-
-In contrast to the traditional time series analysis that focuses on modeling the conditional first moment, models of *autoregressive conditional heteroskedasticity* (ARCH) and *generalized autoregressive conditional heteroskedasticity* (GARCH) specifically take the dependency of the conditional second moment into modeling consideration and accommodate the increasingly important need to explain and model risk and uncertainty in, for example, financial time series.
-
-The ARCH models were introduced in 1982 by Robert Engle to model varying (conditional) variance or volatility of time series. 
-It is often found in economics that the larger values of time series also lead to larger instability (i.e., larger variances), which is termed *(conditional) heteroskedasticity*. 
-Standard examples for demonstrating ARCH or GARCH effects are time series of stock prices, interest and foreign exchange rates, and even some environmental processes: high-frequency data on wind speed, energy production, air quality, etc. [see examples in @Cripps:Dunsmuir:2003;@Marinova:McAleer:2003;@Taylor:Buizza:2004;@Campbell:Diebold:2005]. 
-In 2003, [Robert F. Engle was awarded 1/2 of the Sveriges Riksbank Prize in Economic Sciences in Memory of Alfred Nobel](https://www.nobelprize.org/prizes/economic-sciences/2003/engle/facts/) for his work on ARCH models (the other half was awarded to C. Granger, see @sec-cointegration).
-Although it is not one of the prizes that Alfred Nobel established in his will in 1895, the Sveriges Riksbank Prize is referred to along with the other Nobel Prizes by the Nobel Foundation.
+* @Kirchgassner:Wolters:2007의 7장
 
 
-## Features of ARCH
+## 소개
 
-Since financial data typically have the autocorrelation coefficient close to 1 at lag 1 (e.g., the exchange rate between the US and Canadian dollar hardly changes from today to tomorrow), it is much more interesting and also more practically relevant to model the returns of a financial time series rather than the series itself.
-Let $Y_t$ be a time series of stock prices. 
-The returns $X_t$ measure the relative changes in price and are typically defined as simple returns
+조건부 1차 모멘트를 모델링하는 데 초점을 맞춘 전통적인 시계열 분석과 달리, *자기회귀 조건부 이분산성*(ARCH) 및 *일반화 자기회귀 조건부 이분산성*(GARCH) 모형은 조건부 2차 모멘트의 의존성을 모델링 고려 사항에 구체적으로 포함하고, 예를 들어 금융 시계열에서 위험과 불확실성을 설명하고 모델링해야 하는 점점 더 중요해지는 요구를 수용합니다.
+
+ARCH 모형은 1982년 Robert Engle에 의해 시계열의 다양한 (조건부) 분산 또는 변동성을 모델링하기 위해 도입되었습니다.
+경제학에서는 시계열의 더 큰 값이 더 큰 불안정성(즉, 더 큰 분산)으로 이어지는 경우가 종종 발견되며, 이를 *(조건부) 이분산성*이라고 합니다.
+ARCH 또는 GARCH 효과를 보여주는 표준 예는 주가, 이자율 및 환율 시계열이며, 심지어 일부 환경 프로세스(풍속, 에너지 생산, 대기 질 등에 대한 고주파 데이터)도 포함됩니다[@Cripps:Dunsmuir:2003;@Marinova:McAleer:2003;@Taylor:Buizza:2004;@Campbell:Diebold:2005 참조].
+2003년 [Robert F. Engle은 ARCH 모형에 대한 연구로 알프레드 노벨을 기념하는 스웨덴 국립은행 경제학상의 1/2을 수상했습니다](https://www.nobelprize.org/prizes/economic-sciences/2003/engle/facts/)(나머지 절반은 C. Granger에게 수여됨, @sec-cointegration 참조).
+알프레드 노벨이 1895년 유언에서 제정한 상 중 하나는 아니지만, 스웨덴 국립은행상은 노벨 재단에 의해 다른 노벨상과 함께 언급됩니다.
+
+
+## ARCH의 특징
+
+금융 데이터는 일반적으로 시차 1에서 자기 상관 계수가 1에 가깝기 때문에(예: 미국 달러와 캐나다 달러 간의 환율은 오늘부터 내일까지 거의 변하지 않음) 계열 자체보다 금융 시계열의 수익률을 모델링하는 것이 훨씬 더 흥미롭고 실질적으로도 더 관련성이 있습니다.
+$Y_t$를 주가 시계열이라고 합시다.
+수익률 $X_t$는 가격의 상대적 변화를 측정하며 일반적으로 단순 수익률로 정의됩니다.
 $$
 X_t = \frac{Y_t - Y_{t-1}}{ Y_{t-1} } = \frac{Y_t}{ Y_{t-1} } - 1
 $$ {#eq-returnsimple}
-or logarithmic returns 
+또는 로그 수익률
 $$ 
 X_t = \ln Y_t - \ln Y_{t-1}.
 $$ {#eq-returnlog}
-The two forms are approximately the same, since
+두 형태는 근사적으로 동일합니다. 왜냐하면
 $$ 
 \begin{split}
 \ln Y_t - \ln Y_{t-1} &= \ln \left(\frac{Y_{t}}{Y_{t-1}} \right) \\
@@ -62,17 +62,17 @@ $$
 &\approx \frac{ Y_{t} - Y_{t-1}}{ Y_{t -1} }.
 \end{split}
 $$ {#eq-return2}
-The approximation $\ln(1+x) \approx x$ works when $x$ is close to zero, which is true for many real-world financial problems. 
-However, logarithmic returns are often preferred because in many applications their distribution is closer to normal compared to one of simple returns. 
-Also, log returns have infinite support (from $-\infty$ to $+\infty$) compared to simple returns that have a lower bound of $-1$.
+근사 $\ln(1+x) \approx x$는 $x$가 0에 가까울 때 작동하며, 이는 많은 실제 금융 문제에 해당됩니다.
+그러나 로그 수익률은 많은 응용 분야에서 단순 수익률의 분포보다 정규 분포에 더 가깝기 때문에 종종 선호됩니다.
+또한 로그 수익률은 하한이 -1인 단순 수익률에 비해 무한 지지대( $-\infty$에서 $+\infty$까지)를 갖습니다.
 
-For an example calculation of log returns, see @fig-CAD.
+로그 수익률 계산 예는 @fig-CAD를 참조하십시오.
 
 ```{r}
 #| label: fig-CAD
-#| fig-cap: "CAD per USD daily noon exchange rates and log returns, from 2006-02-22 to 2016-02-22 (excluding bank holidays), obtained from [Bank of Canada](https://www.bankofcanada.ca/rates/exchange/daily-exchange-rates-lookup/)."
+#| fig-cap: "2006년 2월 22일부터 2016년 2월 22일까지(은행 휴무일 제외) 캐나다 달러당 미국 달러 일일 정오 환율 및 로그 수익률, [캐나다 은행](https://www.bankofcanada.ca/rates/exchange/daily-exchange-rates-lookup/)에서 얻음."
 
-# Load data and calculate log returns
+# 데이터 로드 및 로그 수익률 계산
 CAD <- readr::read_csv("data/CAD.csv",
                        na = "Bank holiday",
                        skip = 11) %>% 
@@ -82,44 +82,44 @@ CAD <- readr::read_csv("data/CAD.csv",
 
 p1 <- ggplot(CAD, aes(x = Date, y = USD)) + 
     geom_line() +
-    ylab("CAD per USD")
+    ylab("USD당 CAD")
 p2 <- ggplot(CAD, aes(x = Date, y = lnR)) + 
     geom_line() +
-    ylab("Log return")
+    ylab("로그 수익률")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-@Rydberg:2000 summarizes some important *stylized features* of financial return series, which have been repeatedly observed in all kinds of assets including stock prices, interest rates, and foreign exchange rates:
+@Rydberg:2000은 주가, 이자율 및 환율을 포함한 모든 종류의 자산에서 반복적으로 관찰된 금융 수익률 계열의 몇 가지 중요한 *정형화된 특징*을 요약합니다.
 
-1. *Heavy tails.* The distribution of the returns $X_t$ has tails heavier than the tails of a normal distribution.
-1. *Volatility clustering.* Large price changes occur in clusters. 
-Indeed, often large price changes tend to be followed by large price changes, and periods of tranquility alternate with periods of high volatility.
-1. *Asymmetry.* There is evidence that the distribution of stock returns is slightly negatively skewed. 
-One possible explanation could be that trades react more strongly to negative information than to positive information.
-1. *Aggregational Gaussianity.* When the sampling frequency decreases, the central limit law sets in and the distribution of the returns over a long period tends toward a normal distribution.
-1. *Long-range dependence.* The returns themselves hardly show any autocorrelation, which, however, does not mean that they are independent. 
-Both squared returns and absolute returns often exhibit persistent autocorrelations indicating possible long-memory dependence in those series.
+1. *두꺼운 꼬리.* 수익률 $X_t$의 분포는 정규 분포의 꼬리보다 두꺼운 꼬리를 갖습니다.
+1. *변동성 군집.* 큰 가격 변동은 군집으로 발생합니다.
+실제로 큰 가격 변동은 큰 가격 변동이 뒤따르는 경향이 있으며, 평온한 기간과 높은 변동성 기간이 번갈아 나타납니다.
+1. *비대칭성.* 주식 수익률 분포가 약간 음으로 치우쳐 있다는 증거가 있습니다.
+한 가지 가능한 설명은 거래자들이 긍정적인 정보보다 부정적인 정보에 더 강하게 반응한다는 것입니다.
+1. *집계 정규성.* 표본 추출 빈도가 감소하면 중심 극한 법칙이 적용되어 장기간의 수익률 분포는 정규 분포에 가까워지는 경향이 있습니다.
+1. *장기 의존성.* 수익률 자체는 거의 자기 상관을 보이지 않지만 그렇다고 해서 독립적이라는 의미는 아닙니다.
+제곱 수익률과 절대 수익률 모두 해당 계열의 가능한 장기 기억 의존성을 나타내는 지속적인 자기 상관을 종종 나타냅니다.
 
-@fig-CADACF is the simplest check for the presence of ARCH effects: when the time series is not autocorrelated but is autocorrelated if squared.
+@fig-CADACF는 ARCH 효과 존재에 대한 가장 간단한 검사입니다. 시계열이 자기 상관이 없지만 제곱하면 자기 상관이 있는 경우입니다.
 
 ```{r}
 #| label: fig-CADACF
-#| fig-cap: "ACF of log returns and squared log returns for USD/CAD exchange."
+#| fig-cap: "USD/CAD 환율에 대한 로그 수익률 및 제곱 로그 수익률의 ACF."
 
 p1 <- forecast::ggAcf(CAD$lnR) +
-    ggtitle("Log returns")
+    ggtitle("로그 수익률")
 p2 <- forecast::ggAcf(CAD$lnR^2) +
-    ggtitle(bquote('(Log returns)'^2))
+    ggtitle(bquote('(로그 수익률)'^2))
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-For comparison, see @fig-iidACF with similar plots for simulated i.i.d. series.
+비교를 위해 시뮬레이션된 i.i.d. 계열에 대한 유사한 그림은 @fig-iidACF를 참조하십시오.
 
 ```{r}
 #| label: fig-iidACF
-#| fig-cap: "ACF of simulated i.i.d. $N(0,1)$ series."
+#| fig-cap: "시뮬레이션된 i.i.d. $N(0,1)$ 계열의 ACF."
 
 set.seed(1)
 iid <- rnorm(nrow(CAD))
@@ -133,19 +133,19 @@ p1 + p2 +
 ```
 
 
-## Models
+## 모형
 
-@Engle:1982 defines an autoregressive conditional heteroskedastic (ARCH) model as
+@Engle:1982는 자기회귀 조건부 이분산성(ARCH) 모형을 다음과 같이 정의합니다.
 $$
 \begin{split}
 X_{t} &=  \sigma_{t} \varepsilon_{t}, \\
 \sigma^{2}_{t} &=  a_{0} + a_{1} X^{2}_{t-1} + \dots + a_{p} X^{2}_{t-p},
 \end{split}
 $$ {#eq-ARCH}
-where $a_{0} > 0$, $a_{j} \geqslant 0$, $\varepsilon_{t} \sim \mathrm{i.i.d.}(0,1)$, and $\varepsilon_{t}$ is independent of $X_{t - j}$, where $j \geqslant 1$. 
-We write $X_{t} \sim \mathrm{ARCH} (p)$.
+여기서 $a_{0} > 0$, $a_{j} \geqslant 0$, $\varepsilon_{t} \sim \mathrm{i.i.d.}(0,1)$이고 $\varepsilon_{t}$는 $X_{t - j}$와 독립적이며, 여기서 $j \geqslant 1$입니다.
+$X_{t} \sim \mathrm{ARCH} (p)$로 씁니다.
 
-We can see that
+다음과 같이 볼 수 있습니다.
 $$
 \begin{split}
 \mathrm{E} X_{t} & =  0, \\
@@ -155,69 +155,69 @@ $$
 $$
 
 ::: {.callout-note}
-Stationary ARCH is white noise.
+정상 ARCH는 백색 잡음입니다.
 :::
 
-Thus, in ARCH, the predictive distribution of $X_{t}$ based on its past is a scale-transform of the distribution of $\varepsilon_{t}$ with the scaling constant $\sigma_{t}$ depending on the past of the process.
+따라서 ARCH에서 과거를 기반으로 한 $X_{t}$의 예측 분포는 $\varepsilon_{t}$ 분포의 척도 변환이며, 척도 상수 $\sigma_{t}$는 프로세스의 과거에 따라 달라집니다.
 
-@Bollerslev:1986 introduced a generalized autoregressive conditional heteroskedastic (GARCH) model by replacing the second formula in @eq-ARCH with
+@Bollerslev:1986은 @eq-ARCH의 두 번째 공식을 다음과 같이 대체하여 일반화된 자기회귀 조건부 이분산성(GARCH) 모형을 도입했습니다.
 $$
 \begin{split}
 \sigma^{2}_{t} &= a_{0}  + a_{1} X^{2}_{ t  - 1} + \dots + a_{p} X^{2}_{ t  - p} + b_{1} \sigma^{2}_{t - 1} + \dots + b_{q} \sigma^{2}_{t  - q}\\
 &= a_0  + \sum_{i=1}^p a_{i} X^{2}_{ t  - i} + \sum_{j=1}^q b_{j} \sigma^{2}_{ t  - j},
 \end{split}
 $$ {#eq-GARCH}
-where $a_{0} > 0$, $a_{i} \geqslant 0$, and $b_{j} \geqslant 0$. 
-We write $X_{t}  \sim  \mathrm{GARCH}(p, q)$.
+여기서 $a_{0} > 0$, $a_{i} \geqslant 0$이고 $b_{j} \geqslant 0$입니다.
+$X_{t}  \sim  \mathrm{GARCH}(p, q)$로 씁니다.
 
-Notice the similarity between ARMA and GARCH models.
+ARMA와 GARCH 모형 간의 유사점을 주목하십시오.
 
-The parameters of ARCH/GARCH models are estimated using the method of conditional maximum likelihood. 
-There exist several tests for ARCH/GARCH effects (e.g., analyzing time series and ACF plots, the Engle's Lagrange multiplier test).
+ARCH/GARCH 모형의 매개변수는 조건부 최대 우도 방법을 사용하여 추정됩니다.
+ARCH/GARCH 효과에 대한 여러 검정이 존재합니다(예: 시계열 및 ACF 그림 분석, Engle의 라그랑주 승수 검정).
 
-The approaches to selecting the orders $p$ and $q$ for GARCH include: 
+GARCH에 대한 차수 $p$와 $q$를 선택하는 접근 방식에는 다음이 포함됩니다.
 
-* Visual analysis of ACF and PACF of the squared time series and other residual diagnostics;
-* Variations of information criteria such as AIC and BIC to account for the number of estimated parameters in the GARCH model [@Brooks:Burke:2003];
-* Using GARCH(1,1) by following @Hansen:Lunde:2005;
-* Using out-of-sample forecasts (comparing alternative model specifications on a testing set).
+* 제곱 시계열의 ACF 및 PACF 및 기타 잔차 진단의 시각적 분석;
+* GARCH 모형에서 추정된 매개변수 수를 설명하기 위한 AIC 및 BIC와 같은 정보 기준의 변형[@Brooks:Burke:2003];
+* @Hansen:Lunde:2005에 따라 GARCH(1,1) 사용;
+* 표본 외 예측 사용(테스트 세트에서 대체 모형 사양 비교).
 
 
-### Lagrange multiplier test
+### 라그랑주 승수 검정
 
-The Lagrange multiplier (LM) test is equivalent to an $F$-test for the significance of the least squares regression on squared values:
+라그랑주 승수(LM) 검정은 제곱 값에 대한 최소 제곱 회귀의 유의성에 대한 $F$-검정과 동일합니다.
 $$
 X^{2}_{t} = \alpha_0  + \alpha_1 X^{2}_{t-1} + \dots + \alpha_m X^{2}_{t-m} + e_t,
 $$ {#eq-LMtregression}
-where $e_t$ denotes the error term, $m$ is a positive integer, $t = m+1,\dots,T$, and $T$ is the sample size (length of the time series).
+여기서 $e_t$는 오차 항, $m$은 양의 정수, $t = m+1,\dots,T$이고 $T$는 표본 크기(시계열 길이)입니다.
 
-Specifically, the null hypothesis is
+구체적으로 귀무 가설은 다음과 같습니다.
 $$
 H_0: \alpha_1 = \dots = \alpha_m = 0.
 $$
-Let the sum of squares total
+총 제곱합을 다음과 같이 정의합니다.
 $$
 SST = \sum_{t=m+1}^T \left( X_t^2 - \overline{X_t^2} \right) ^2,
 $$
-where $\overline{X_t^2}$ is the sample mean of $X_t^2$. 
-The sum of squares of the errors
+여기서 $\overline{X_t^2}$는 $X_t^2$의 표본 평균입니다.
+오차 제곱합은 다음과 같습니다.
 $$
 SSE = \sum_{t=m+1}^T \hat{e}_t^2,
 $$
-where $\hat{e}_t$ is the least-squares residual of the linear regression (@eq-LMtregression). 
+여기서 $\hat{e}_t$는 선형 회귀(@eq-LMtregression)의 최소 제곱 잔차입니다.
 
-Then, the test statistic
+그러면 검정 통계량은 다음과 같습니다.
 $$
 F = \frac{(SST - SSE)/m}{SSE/(T-2m-1)},
 $$ {#eq-LMFtest}
-which is asymptotically distributed under the null hypothesis as a $\chi^2$ distribution with $m$ degrees of freedom.
+귀무 가설 하에서 점근적으로 자유도 $m$인 $\chi^2$ 분포를 따릅니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Testing ARCH effects in USD/CAD log returns 
+## 예시: USD/CAD 로그 수익률의 ARCH 효과 검정
 
-We have seen in @fig-CADACF the autocorrelation of squared log returns. 
-Now apply the formal LM test.
+@fig-CADACF에서 제곱 로그 수익률의 자기 상관을 확인했습니다.
+이제 공식적인 LM 검정을 적용합니다.
 
 ```{r}
 #| code-fold: false
@@ -226,8 +226,8 @@ m <- 12
 FinTS::ArchTest(CAD$lnR, lags = m)
 ```
 
-The LM test implemented in the function `FinTS::ArchTest()` detects the presence of ARCH effects (rejects the null hypothesis) when considering `r m` lags. 
-In base R, the same results can be obtained by running the $F$ test as follows:
+함수 `FinTS::ArchTest()`에 구현된 LM 검정은 `r m`개의 시차를 고려할 때 ARCH 효과의 존재를 감지합니다(귀무 가설 기각).
+기본 R에서는 다음과 같이 $F$ 검정을 실행하여 동일한 결과를 얻을 수 있습니다.
 
 ```{r}
 #| code-fold: false
@@ -240,10 +240,10 @@ anova(mod)
 
 ::: {.callout-note icon=false}
 
-## Example: GARCH model for USD/CAD log returns 
+## 예시: USD/CAD 로그 수익률에 대한 GARCH 모형
 
-Let's estimate a GARCH(1,1) model for these data, using the conditional ML method. 
-Note that `omega` in the results below is denoted $a_0$ in our equations (the intercept in the variance model):
+조건부 ML 방법을 사용하여 이 데이터에 대한 GARCH(1,1) 모형을 추정해 보겠습니다.
+아래 결과에서 `omega`는 방정식에서 $a_0$(분산 모형의 절편)로 표시됩니다.
 
 ```{r}
 #| code-fold: false
@@ -255,14 +255,14 @@ garch11@description <- "---"
 garch11
 ```
 
-Next, we run diagnostics of the fitted model, i.e., whether the residuals $\varepsilon_{t}$ are white noise and are normally distributed. 
-The code `plot(garch11)` generates scatterplots, histograms, Q-Q plots, and ACF plots of the original data and the obtained residuals (@fig-garch11QQ). 
-Of course, the analysis can be performed also with separate commands. 
-For example, see the ACFs of the residuals (@fig-garch11ACF).
+다음으로 적합된 모형의 진단을 실행합니다. 즉, 잔차 $\varepsilon_{t}$가 백색 잡음이고 정규 분포를 따르는지 여부입니다.
+코드 `plot(garch11)`은 원본 데이터와 얻은 잔차의 산점도, 히스토그램, Q-Q 그림 및 ACF 그림을 생성합니다(@fig-garch11QQ).
+물론 별도의 명령으로도 분석을 수행할 수 있습니다.
+예를 들어 잔차의 ACF는 @fig-garch11ACF를 참조하십시오.
 
 ```{r}
 #| label: fig-garch11QQ
-#| fig-cap: "Selected diagnostics of the GARCH(1,1) model for the USD/CAD log returns."
+#| fig-cap: "USD/CAD 로그 수익률에 대한 GARCH(1,1) 모형의 선택된 진단."
 
 par(mfrow = c(1, 2))
 plot(garch11, which = c(3, 13))
@@ -270,20 +270,20 @@ plot(garch11, which = c(3, 13))
 
 ```{r}
 #| label: fig-garch11ACF
-#| fig-cap: "ACF of residuals from the GARCH(1,1) model for the USD/CAD log returns."
+#| fig-cap: "USD/CAD 로그 수익률에 대한 GARCH(1,1) 모형의 잔차 ACF."
 
 et <- residuals(garch11, standardize = TRUE)
 p1 <- forecast::ggAcf(et) +
-    ggtitle("Residuals")
+    ggtitle("잔차")
 p2 <- forecast::ggAcf(et^2) +
-    ggtitle(bquote('Residuals'^2))
+    ggtitle(bquote('잔차'^2))
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-Based on the plots, autocorrelations were effectively removed, but the assumption of normality is violated -- @fig-garch11QQ shows heavy and almost symmetric tails in the distribution of GARCH residuals.
+그림을 기준으로 자기 상관은 효과적으로 제거되었지만 정규성 가정이 위반되었습니다. @fig-garch11QQ는 GARCH 잔차 분포에서 두껍고 거의 대칭적인 꼬리를 보여줍니다.
 
-To account for the heavy tails, we change the conditional distribution from normal to the standardized Student $t$-distribution (see `?fGarch::std`).
+두꺼운 꼬리를 설명하기 위해 조건부 분포를 정규 분포에서 표준화된 스튜던트 $t$-분포로 변경합니다(`?fGarch::std` 참조).
 
 ```{r}
 #| code-fold: false
@@ -295,11 +295,11 @@ garch11t@description <- "---"
 garch11t
 ```
 
-Verify the diagnostics plots in @fig-garch11tQQ.
+@fig-garch11tQQ에서 진단 그림을 확인합니다.
 
 ```{r}
 #| label: fig-garch11tQQ
-#| fig-cap: "Selected diagnostics of the GARCH(1,1) model with the standardized Student-t distribution for the USD/CAD log returns."
+#| fig-cap: "USD/CAD 로그 수익률에 대한 표준화된 스튜던트-t 분포를 갖는 GARCH(1,1) 모형의 선택된 진단."
 #| fig-height: 7
 
 par(mfrow = c(2, 2))
@@ -307,19 +307,19 @@ plot(garch11t, which = c(3, 13))
 plot(garch11t, which = c(9, 11))
 ```
 
-Now we can use the model for predictions (@fig-garch11tpred). 
-Few things to note here:
+이제 예측에 모형을 사용할 수 있습니다(@fig-garch11tpred).
+여기서 몇 가지 유의할 점이 있습니다.
 
-* the model is 'self-contained' so we can just specify `n.ahead` for the number of steps to be predicted;
-* GARCH models are typically applied to long time series, so the argument `nx` limits the length of the plotted observed time series (by default only the most recent 25% of observations are plotted);
-* the argument `conf` specifies the confidence level, then the conditional distribution from the model is used to compute critical values for the interval forecasts. 
-Alternatively, one can specify the critical values manually with the argument `crit_val`.
+* 모형은 '자체 포함'이므로 예측할 단계 수에 대해 `n.ahead`만 지정하면 됩니다.
+* GARCH 모형은 일반적으로 긴 시계열에 적용되므로 인수 `nx`는 그려진 관찰된 시계열의 길이를 제한합니다(기본적으로 가장 최근 관찰의 25%만 그려짐).
+* 인수 `conf`는 신뢰 수준을 지정한 다음 모형의 조건부 분포를 사용하여 구간 예측에 대한 임계값을 계산합니다.
+또는 인수 `crit_val`을 사용하여 임계값을 수동으로 지정할 수 있습니다.
 
-For more details, see `?fGarch::predict`.
+자세한 내용은 `?fGarch::predict`를 참조하십시오.
 
 ```{r}
 #| label: fig-garch11tpred
-#| fig-cap: "Predictions using the GARCH(1,1) model for the USD/CAD log returns."
+#| fig-cap: "USD/CAD 로그 수익률에 대한 GARCH(1,1) 모형을 사용한 예측."
 
 predict(garch11t, n.ahead = 30, 
         conf = 0.95,
@@ -328,46 +328,46 @@ predict(garch11t, n.ahead = 30,
 :::
 
 
-## Extensions
+## 확장
 
-There was a boom in creating new models by adding new features to GARCH:
+GARCH에 새로운 기능을 추가하여 새로운 모형을 만드는 붐이 일었습니다.
 
-* IGARCH -- integrated GARCH
-* EGARCH -- exponential GARCH
-* TGARCH -- threshold GARCH
-* QGARCH -- quadratic GARCH
-* GARCH-M -- GARCH with heteroskedasticity in mean
-* NGARCH -- nonlinear GARCH
+* IGARCH -- 누적 GARCH
+* EGARCH -- 지수 GARCH
+* TGARCH -- 임계값 GARCH
+* QGARCH -- 이차 GARCH
+* GARCH-M -- 평균에 이분산성이 있는 GARCH
+* NGARCH -- 비선형 GARCH
 * ...
-* MARCH -- modified GARCH
-* STARCH -- structural ARCH
+* MARCH -- 수정된 GARCH
+* STARCH -- 구조적 ARCH
 * ...
 
-Thus, these papers had to appear: @Hansen:Lunde:2005 and @Bollerslev:2009.
+따라서 이러한 논문이 등장해야 했습니다. @Hansen:Lunde:2005 및 @Bollerslev:2009.
 
 
-## Model building
+## 모형 구축
 
-We have considered the models for conditional heteroskedasticity, and in the example, we estimated the mean just as a constant (intercept `mu`), however, in a more general case one might need to model and remove trend and cyclical variability along with autocorrelations (recall the methods of smoothing, ARMA, and ARIMA modeling) before exploring the need to model ARCH.
+조건부 이분산성 모형을 고려했으며 예제에서는 평균을 상수(절편 `mu`)로만 추정했지만, 더 일반적인 경우에는 ARCH 모델링의 필요성을 탐색하기 전에 추세 및 주기적 변동성을 모델링하고 제거해야 할 수 있습니다(평활화, ARMA 및 ARIMA 모델링 방법 상기).
 
-Below are the steps for such a more general case of analysis, adapted from Chapter 3.3 in @Tsay:2005:
+다음은 @Tsay:2005의 3.3장에서 각색한 이러한 더 일반적인 분석 사례에 대한 단계입니다.
 
-1. Specify a mean equation by testing for trend and serial dependence in the data and, if necessary, build a time series model (e.g., an ARMA model) to remove any linear dependence.
-1. Use the residuals of the mean equation to test for ARCH effects.
-1. If the ARCH effects are statistically significant, specify a volatility model and perform a *joint estimation* of the mean and volatility equations. 
-1. Check the fitted model carefully and refine it if necessary.
+1. 데이터의 추세 및 계열 의존성을 검정하여 평균 방정식을 지정하고 필요한 경우 시계열 모형(예: ARMA 모형)을 구축하여 선형 의존성을 제거합니다.
+1. 평균 방정식의 잔차를 사용하여 ARCH 효과를 검정합니다.
+1. ARCH 효과가 통계적으로 유의하면 변동성 모형을 지정하고 평균 및 변동성 방정식의 *공동 추정*을 수행합니다.
+1. 적합된 모형을 주의 깊게 확인하고 필요한 경우 수정합니다.
 
 ::: {.callout-note}
-The joint estimation can be done in R using the function `fGarch::garchFit()` and specifying, e.g., `formula = ~ arma(2, 1) + garch(1, 1)`.
+공동 추정은 R에서 함수 `fGarch::garchFit()`을 사용하고 예를 들어 `formula = ~ arma(2, 1) + garch(1, 1)`을 지정하여 수행할 수 있습니다.
 :::
 
 
-## Conclusion
+## 결론
 
-Whereas originated in financial analysis, GARCH models are becoming popular in other domains, including environmental science. 
-Note that close alternatives exist, for example, GAMLSS allows modeling different distributional parameters such as mean, scale, skewness, etc.
+금융 분석에서 시작되었지만 GARCH 모형은 환경 과학을 포함한 다른 분야에서도 인기를 얻고 있습니다.
+예를 들어 GAMLSS는 평균, 척도, 왜도 등과 같은 다양한 분포 매개변수를 모델링할 수 있는 것과 같이 유사한 대안이 존재한다는 점에 유의하십시오.
 
-GARCH effects are tested for and modeled *after* the mean (i.e., trend) and autocorrelations are removed. 
-Standard model selection techniques can be adapted to specify GARCH models.
+GARCH 효과는 평균(즉, 추세)과 자기 상관이 제거된 *후에* 검정되고 모델링됩니다.
+표준 모형 선택 기법을 GARCH 모형을 지정하는 데 적용할 수 있습니다.
 
-R packages offering functions for GARCH modeling include (in alphabetic order): `bayesforecast`, `betategarch`, `fGarch` (used here), `garchx`, `rmgarch`, `rugarch`, `tseries`, and more (see, for example, CRAN Task Views on [Empirical Finance](https://cran.r-project.org/web/views/Finance.html)).
+GARCH 모델링을 위한 함수를 제공하는 R 패키지에는 다음이 포함됩니다(알파벳 순서). `bayesforecast`, `betategarch`, `fGarch`(여기서 사용됨), `garchx`, `rmgarch`, `rugarch`, `tseries` 등(예: [실증 금융](https://cran.r-project.org/web/views/Finance.html)에 대한 CRAN 작업 보기 참조).

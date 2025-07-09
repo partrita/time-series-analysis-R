@@ -12,102 +12,102 @@ options(digits = 3)
 theme_set(theme_light())
 ```
 
-# Introduction to Time Series Analysis
+# 시계열 분석 소개
 
-The goal of this lecture is to introduce time series and their common components. 
-You should become confident in identifying and characterizing trends, seasonal and other variability based on visual analysis of time series plots and plots of autocorrelation functions.
+이 강의의 목표는 시계열과 그 공통 구성 요소를 소개하는 것입니다.
+시계열 그림과 자기 상관 함수 그림의 시각적 분석을 기반으로 추세, 계절성 및 기타 변동성을 식별하고 특징짓는 데 자신감을 갖게 될 것입니다.
 
-**Objectives**
+**학습 목표**
 
-1. Define time series, common components (decomposition), and patterns to look out for (outliers, change points, heteroskedasticity).
-1. Distinguish simple models for univariate time series (building blocks for more complex models).
-1. Define autocorrelation and partial autocorrelation and interpret such estimates.
-1. Explain the assumption of stationarity for calculating autocorrelation.
+1. 시계열, 공통 구성 요소(분해) 및 주의해야 할 패턴(이상치, 변화점, 이분산성)을 정의합니다.
+1. 단변량 시계열에 대한 간단한 모형(더 복잡한 모형의 구성 요소)을 구별합니다.
+1. 자기 상관 및 부분 자기 상관을 정의하고 이러한 추정치를 해석합니다.
+1. 자기 상관 계산을 위한 정상성 가정을 설명합니다.
 
-**Reading materials**
+**읽기 자료**
 
-* Chapters 1.1--1.4 in @Brockwell:Davis:2002
+* @Brockwell:Davis:2002의 1.1-1.4장
 
 
-## Time series and its components
+## 시계열 및 그 구성 요소
 
-'A *time series* is a set of observations $Y_t$, each one being recorded at a specific time $t$' [@Brockwell:Davis:2002]. 
-The index $t$ will typically refer to some standard unit of time, e.g., seconds, hours, days, weeks, months, or years.
+'@Brockwell:Davis:2002'에 따르면 '*시계열*은 각 관측치가 특정 시간 $t$에 기록된 관측치 $Y_t$의 집합입니다.'
+색인 $t$는 일반적으로 초, 시간, 일, 주, 월 또는 연도와 같은 표준 시간 단위를 나타냅니다.
 
-'A *time series* is a collection of observations made sequentially through time' [@Chatfield:2000].
+'@Chatfield:2000'에 따르면 '*시계열*은 시간을 통해 순차적으로 이루어진 관측치의 모음입니다.'
 
-A *stochastic process* is a sequence of random variables $Y_t$, $t = 1, 2, \dots$ indexed by time $t$, which can be written as $Y_t$, $t \in [1,T]$. 
-A time series is a realization of a stochastic process.
+*확률 과정*은 시간 $t$로 색인화된 확률 변수 $Y_t$, $t = 1, 2, \dots$의 시퀀스이며, $Y_t$, $t \in [1,T]$로 쓸 수 있습니다.
+시계열은 확률 과정의 실현입니다.
 
-We shall frequently use the term *time series* to mean both the data and the process.
+우리는 데이터와 과정을 모두 의미하기 위해 *시계열*이라는 용어를 자주 사용할 것입니다.
 
-Let's try to describe the patterns we see in @fig-sentiment, @fig-JohnsonJohnson, and @fig-accdeaths.
+@fig-sentiment, @fig-JohnsonJohnson 및 @fig-accdeaths에서 볼 수 있는 패턴을 설명해 봅시다.
 
 ```{r}
 #| label: fig-sentiment
-#| fig-cap: "Monthly index of consumer sentiment, the University of Michigan Consumer Survey (1966:Q1 = 100)."
+#| fig-cap: "월별 소비자 심리 지수, 미시간 대학교 소비자 조사 (1966년 1분기 = 100)."
 
 p <- forecast::autoplot(TSstudio::Michigan_CS) + 
     xlab("") + 
-    ylab("Index")
+    ylab("지수")
 plotly::ggplotly(p)
 ```
 
 ```{r}
 #| label: fig-JohnsonJohnson
-#| fig-cap: "Quarterly earnings (dollars) per Johnson & Johnson share, 1960--1980."
+#| fig-cap: "존슨앤존슨 주당 분기별 수익(달러), 1960-1980년."
 
 ggplot2::autoplot(JohnsonJohnson) + 
     xlab("") + 
-    ylab("Earnings per share (USD)")
+    ylab("주당 순이익 (USD)")
 ```
 
 ```{r}
 #| label: fig-accdeaths
-#| fig-cap: "Monthly totals of accidental deaths in the USA, 1973--1978."
+#| fig-cap: "미국 월별 사고 사망자 총계, 1973-1978년."
 
 ggplot2::autoplot(MASS::accdeaths) + 
     xlab("") + 
-    ylab("Number of accidental deaths")
+    ylab("사고 사망자 수")
 ```
 
-In this course, we will be interested in modeling time series to learn more about their properties and to forecast (predict) future values of $Y_t$, i.e., values of $Y_t$ for $t$ beyond the end of the data set. 
-Typically, we will use the historical data (or some appropriate subset of it) to build our forecasting models.
+이 과정에서는 시계열의 속성에 대해 더 자세히 알아보고 $Y_t$의 미래 값, 즉 데이터 세트의 끝을 넘어서는 $t$에 대한 $Y_t$의 값을 예측(예측)하기 위해 시계열을 모델링하는 데 관심이 있습니다.
+일반적으로 예측 모형을 구축하기 위해 과거 데이터(또는 그 일부 적절한 하위 집합)를 사용합니다.
 
 
-## Decomposition of time series
+## 시계열 분해
 
-A time series can generally be expressed as a sum or product of four distinct components:
+시계열은 일반적으로 네 가지 개별 구성 요소의 합 또는 곱으로 표현할 수 있습니다.
 $$
 Y_t = M_t + S_t + C_t + \epsilon_t
 $$
-or
+또는
 $$
 Y_t = M_t \cdot S_t \cdot C_t \cdot \epsilon_t,
 $$
-where
+여기서
 
-1. $M_t$ is the *trend*, representing the average change (change in the mean) in the time series over time.
-Examples of trends are:  
-    $M_t = \beta_0$ (constant over time, we usually refer to this case as 'no trend');  
-    $M_t = \beta_0 + \beta_1t$ (linear increase or decrease over time);  
-    $M_t = \beta_0 + \beta_1t + \beta_2t^2$ (quadratic over time).  
-1. $S_t$ represents *regular periodic fluctuations* (a.k.a. seasonality) in the time series. 
-$S_t$ has the property that it is not constant but there exists an integer $m \geqslant 2$ and scaling factors $\lambda_k > 0$ such that $S_{t+km} = \lambda_kS_t$ for $1 \leqslant t \leqslant m$ and each $k \geqslant 1$. 
-The smallest such $m$ is called the *period*. 
-Periodic time series are quite common and include seasonal variability (the period is 1 year), diurnal (the period is 24 hours), and other cycles such as tides (the period is 12 hours 25 minutes). 
-This component can be modeled using sinusoidal functions or indicator variables.
-1. $C_t$ represents *irregular cyclical fluctuations*, i.e., sinusoidal-type movements that are of irregular length and are not as predictable as the seasonal component, e.g., El Niño Southern Oscillation (ENSO) and macroeconomic business cycles. 
-We do not explicitly model $C_t$ in this course.
-1. $\epsilon_t$ is the *residual* or error and represents the remaining unexplained variation in $Y_t$. 
-In other words, it is a random or stochastic component.
+1. $M_t$는 *추세*이며, 시간 경과에 따른 시계열의 평균 변화(평균 변화)를 나타냅니다.
+추세의 예는 다음과 같습니다.
+    $M_t = \beta_0$ (시간에 따라 일정하며, 이 경우를 '추세 없음'이라고 함);
+    $M_t = \beta_0 + \beta_1t$ (시간에 따른 선형 증가 또는 감소);
+    $M_t = \beta_0 + \beta_1t + \beta_2t^2$ (시간에 따른 이차 함수).
+1. $S_t$는 시계열의 *규칙적인 주기적 변동*(계절성이라고도 함)을 나타냅니다.
+$S_t$는 일정하지 않지만 정수 $m \geqslant 2$와 스케일링 계수 $\lambda_k > 0$이 존재하여 각 $k \geqslant 1$에 대해 $S_{t+km} = \lambda_kS_t$가 $1 \leqslant t \leqslant m$에 대해 성립하는 속성을 갖습니다.
+가장 작은 이러한 $m$을 *주기*라고 합니다.
+주기적 시계열은 매우 일반적이며 계절적 변동성(주기는 1년), 일주기(주기는 24시간) 및 조수와 같은 기타 주기(주기는 12시간 25분)를 포함합니다.
+이 구성 요소는 사인 함수 또는 지표 변수를 사용하여 모델링할 수 있습니다.
+1. $C_t$는 *불규칙한 순환 변동*을 나타냅니다. 즉, 길이가 불규칙하고 계절적 구성 요소만큼 예측 가능하지 않은 사인형 움직임입니다(예: 엘니뇨 남방 진동(ENSO) 및 거시 경제 경기 순환).
+이 과정에서는 $C_t$를 명시적으로 모델링하지 않습니다.
+1. $\epsilon_t$는 *잔차* 또는 오차이며 $Y_t$에서 설명되지 않은 나머지 변동을 나타냅니다.
+즉, 무작위 또는 확률적 구성 요소입니다.
 
-@fig-births illustrates an automatic decomposition, however, because the user has too little control over how the decomposition is done, this function is *not recommended*. 
-We will talk about the alternatives in the next lecture.
+@fig-births는 자동 분해를 보여주지만, 사용자가 분해 방법을 거의 제어할 수 없으므로 이 함수는 *권장되지 않습니다*.
+다음 강의에서 대안에 대해 이야기할 것입니다.
 
 ```{r}
 #| label: fig-births
-#| fig-cap: "Time-series decomposition of the monthly number of births in New York City (thousands), 1946--1959."
+#| fig-cap: "뉴욕시 월별 출생아 수(천 명) 시계열 분해, 1946-1959년."
 #| fig-height: 7
 
 # births <- scan("http://robjhyndman.com/tsdldata/data/nybirths.dat")
@@ -117,40 +117,40 @@ ggplot2::autoplot(decompose(births))
 ```
 
 
-## General approach to time series modeling
+## 시계열 모델링의 일반적인 접근 방식
 
-1. Plot the series and examine the main features of the graph, checking whether there is
-    * a trend,
-    * a seasonal or another periodic component,
-    * any apparent sharp changes in behavior,
-    * any outlying observations.
-1. Remove the trend and periodic components to get stationary residuals (this step is called *detrending and deseasonalizing*). 
-Broadly speaking, a time series is said to be *stationary* if there is
-    1) no systematic change in the mean (no trend),
-    1) no systematic change in the variance, and
-    1) no strictly periodic variations.
-1. Choose a model to fit the residuals, making use of various sample statistics, including the *sample autocorrelation function* (ACF).
-1. Forecast the residuals and then invert the transformations to arrive at forecasts of the original series.
+1. 계열을 그리고 그래프의 주요 특징을 검토하여 다음이 있는지 확인합니다.
+    * 추세,
+    * 계절적 또는 기타 주기적 구성 요소,
+    * 행동의 명백한 급격한 변화,
+    * 특이 관측치.
+1. 추세 및 주기적 구성 요소를 제거하여 정상 잔차를 얻습니다(이 단계를 *추세 제거 및 계절성 제거*라고 함).
+넓게 말하면 시계열은 다음과 같은 경우 *정상*이라고 합니다.
+    1) 평균에 체계적인 변화가 없음(추세 없음),
+    1) 분산에 체계적인 변화가 없음,
+    1) 엄격하게 주기적인 변동이 없음.
+1. *표본 자기 상관 함수*(ACF)를 포함한 다양한 표본 통계량을 사용하여 잔차에 적합한 모형을 선택합니다.
+1. 잔차를 예측한 다음 변환을 반전하여 원래 계열의 예측에 도달합니다.
 
-There are two general classes of forecasting models.
+예측 모형에는 두 가지 일반적인 종류가 있습니다.
 
-**Univariate time series models** include different types of exponential smoothing, trend models, autoregressive models, etc. 
-The characteristic feature of these models is that we need only *one time series* to start with ($Y_t$), then we can build a regression of this time series over time ($Y_t \sim t$) for estimating the trend or, for example, an autoregressive model ('auto' $=$ self). 
-In the autoregressive approach, the current value $Y_t$ is modeled as a function of the past values:
+**단변량 시계열 모형**에는 다양한 유형의 지수 평활, 추세 모형, 자기 회귀 모형 등이 포함됩니다.
+이러한 모형의 특징은 처음에 *하나의 시계열*($Y_t$)만 필요하다는 것입니다. 그런 다음 추세를 추정하기 위해 이 시계열을 시간에 대해 회귀($Y_t \sim t$)하거나 예를 들어 자기 회귀 모형('auto' = 자기)을 구축할 수 있습니다.
+자기 회귀 접근 방식에서는 현재 값 $Y_t$를 과거 값의 함수로 모델링합니다.
 $$
 Y_t = f(Y_{t-1}, Y_{t-2}, \dots, Y_{t-p}) + \epsilon_t.
 $${#eq-funiv}
-A linear autoregressive model has the following form (assume that function $f(\cdot)$ is a linear parametric function, with parameters $\phi_0, \phi_1, \dots, \phi_p$):
+선형 자기 회귀 모형은 다음과 같은 형식을 갖습니다(함수 $f(\cdot)$가 매개변수 $\phi_0, \phi_1, \dots, \phi_p$를 갖는 선형 매개변수 함수라고 가정).
 $$
 Y_t = \phi_0 + \phi_1 Y_{t-1} + \phi_2 Y_{t-2} + \dots +\phi_p Y_{t-p} + \epsilon_t.
 $$
 
-**Multivariate models** involve additional covariates (a.k.a. regressors, predictors, or independent variables) $X_{1,t}, X_{2,t}, \dots, X_{k,t}$. 
-A multivariate time series model can be as simple as the multiple regression
+**다변량 모형**에는 추가 공변량(회귀 변수, 예측 변수 또는 독립 변수라고도 함) $X_{1,t}, X_{2,t}, \dots, X_{k,t}$가 포함됩니다.
+다변량 시계열 모형은 다중 회귀만큼 간단할 수 있습니다.
 $$
 Y_t = f(X_{1,t}, X_{2,t}, \dots, X_{k,t}) + \epsilon_t,
 $$
-or involve lagged values of the response and predictors:
+또는 응답 및 예측 변수의 시차 값을 포함할 수 있습니다.
 $$
 \begin{split}
 Y_t = f(&X_{1,t}, X_{2,t}, \dots, X_{k,t}, \\
@@ -160,123 +160,123 @@ Y_t = f(&X_{1,t}, X_{2,t}, \dots, X_{k,t}, \\
 &Y_{t-1}, Y_{t-2}, \dots, Y_{t-p}) + \epsilon_t,
 \end{split}
 $${#eq-fmult}
-where $p$, $q1, \dots, qk$ are the lags. 
-We can start the analysis with many variables and build a forecasting model as complex as @eq-fmult, but remember that a simpler univariate model may also work well. 
-We should create an appropriate univariate model (like in @eq-funiv) to serve as a baseline, then compare the models' performance on some out-of-sample data, as described in @sec-evalforecast.
+여기서 $p$, $q1, \dots, qk$는 시차입니다.
+많은 변수로 분석을 시작하고 @eq-fmult만큼 복잡한 예측 모형을 구축할 수 있지만 더 간단한 단변량 모형도 잘 작동할 수 있음을 기억하십시오.
+@sec-evalforecast에 설명된 대로 일부 표본 외 데이터에 대한 모형 성능을 비교한 다음 기준선 역할을 하는 적절한 단변량 모형(@eq-funiv와 같음)을 만들어야 합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Identify the time-series components in these plots
+## 예시: 이 그림에서 시계열 구성 요소 식별
 
 ```{r}
 #| label: fig-sunspots
-#| fig-cap: "Monthly mean relative sunspot numbers from 1749 to 1983. Collected at Swiss Federal Observatory, Zurich until 1960, then Tokyo Astronomical Observatory. Notice the apparent periodicity, large variability when the series is at a high level, and small variability when the series is at a low level. This series is likely to have no trend over the time we have been able to observe it, though it may have a nearly perfectly periodic component."
+#| fig-cap: "1749년부터 1983년까지 월평균 상대 흑점 수. 1960년까지 스위스 연방 천문대(취리히)에서 수집되었고, 그 후 도쿄 천문대에서 수집되었습니다. 명백한 주기성, 계열이 높은 수준일 때 큰 변동성, 계열이 낮은 수준일 때 작은 변동성을 주목하십시오. 이 계열은 관찰할 수 있었던 시간 동안 추세가 없을 가능성이 높지만 거의 완벽하게 주기적인 구성 요소를 가질 수 있습니다."
 
 ggplot2::autoplot(sunspots) + 
     xlab("") + 
-    ylab("Sunspot number")
+    ylab("흑점 수")
 ```
 
 ```{r}
 #| label: fig-lynx
-#| fig-cap: "Annual numbers of lynx trappings for 1821--1934 in Canada. There is a clear cycle of about 10 years in length (the period is 10 years). There is potentially also a longer-term cycle."
+#| fig-cap: "캐나다에서 1821-1934년 연간 스라소니 덫 수. 길이가 약 10년인 명확한 주기가 있습니다(주기는 10년). 장기적인 주기도 잠재적으로 존재합니다."
 
 ggplot2::autoplot(lynx) + 
     xlab("") + 
-    ylab("Number of lynx trappings")
+    ylab("스라소니 덫 수")
 ```
 
 ```{r}
 #| label: fig-Nile
-#| fig-cap: "Annual flow of the river Nile at Aswan, 1871--1970. There are signs of nonlinear dynamics or a changepoint."
+#| fig-cap: "아스완에서 나일강 연간 유량, 1871-1970년. 비선형 역학 또는 변화점의 징후가 있습니다."
 
 ggplot2::autoplot(Nile) + 
     xlab("") + 
-    ylab(bquote('Annual flow  '(10^8~m^3)))
+    ylab(bquote('연간 유량 '(10^8~m^3)))
 ```
 
 ```{r}
 #| label: fig-co2
-#| fig-cap: "Monthly Mauna Loa atmospheric CO$_2$ concentration, 1959--1997. There is a strong trend and a strong annual cycle."
+#| fig-cap: "마우나로아 월별 대기 CO$_2$ 농도, 1959-1997년. 강한 추세와 강한 연간 주기가 있습니다."
 
 ggplot2::autoplot(co2) + 
     xlab("") + 
-    ylab(bquote(CO[2]~'concentration (ppm)'))
+    ylab(bquote(CO[2]~'농도 (ppm)'))
 ```
 
 ```{r}
 #| label: fig-consumption
-#| fig-cap: "Quarterly personal disposable income (Canada, 1947--1996). There is a clear increasing trend of a relatively complex shape. Also, the variability increased in the later years."
+#| fig-cap: "분기별 개인 가처분 소득 (캐나다, 1947-1996년). 상대적으로 복잡한 형태의 명확한 증가 추세가 있습니다. 또한 후반기에 변동성이 증가했습니다."
 
 ggplot2::autoplot(Ecdat::Consumption[,"yd"]/1000) + 
     xlab("") + 
-    ylab("Income (thousand 1986 dollars)")
+    ylab("소득 (1986년 기준 천 달러)")
 ```
 
 ```{r}
 #| label: fig-SP500
-#| fig-cap: "Daily returns (change in log index) on Standard & Poor's 500 Index, 1981-01 to 1991-04. Business days are used as the time index to avoid data gaps during non-trading days. The mean and variance are constant overall (not increasing or decreasing), but there are clusters of volatility."
+#| fig-cap: "S&P 500 지수 일일 수익률(로그 지수 변화), 1981년 1월 ~ 1991년 4월. 거래 없는 날의 데이터 공백을 피하기 위해 영업일을 시간 색인으로 사용합니다. 평균과 분산은 전반적으로 일정하지만(증가 또는 감소하지 않음) 변동성 군집이 있습니다."
 
 forecast::autoplot(as.ts(Ecdat::SP500[,1])) + 
     xlab("") + 
-    ylab("Daily return")
+    ylab("일일 수익률")
 ```
 :::
 
 
-## Some simple time series models
+## 몇 가지 간단한 시계열 모형
 
-Recall that a random process is a sequence of random variables, so its model would be the joint distribution of these random variables
+확률 과정은 확률 변수의 시퀀스이므로 해당 모형은 이러한 확률 변수의 결합 분포가 됩니다.
 $$
 f_1(Y_{t_1}), \; f_2(Y_{t_1}, Y_{t_2}), \; f_3(Y_{t_1}, Y_{t_2}, Y_{t_3}), \dots
 $$
 
-With sample data, usually, we cannot estimate so many parameters. 
-Instead, we use only first- and second-order moments of the joint distributions, i.e., $\mathrm{E}(Y_t)$ and $\mathrm{E}(Y_tY_{t+h})$. 
-In the case when all the joint distributions are multivariate normal (MVN), these second-order properties completely describe the sequence (we do not need any other information beyond the first two moments in this case).
+표본 데이터를 사용하면 일반적으로 너무 많은 매개변수를 추정할 수 없습니다.
+대신 결합 분포의 1차 및 2차 모멘트, 즉 $\mathrm{E}(Y_t)$ 및 $\mathrm{E}(Y_tY_{t+h})$만 사용합니다.
+모든 결합 분포가 다변량 정규(MVN)인 경우 이러한 2차 속성은 시퀀스를 완전히 설명합니다(이 경우 처음 두 모멘트 외에 다른 정보는 필요하지 않음).
 
-* **i.i.d. noise** -- independent and identically distributed random variables with zero mean. 
-There is no dependence between observations, at any moment. 
-The joint distribution function is
+* **i.i.d. 잡음** -- 평균이 0인 독립적이고 동일하게 분포된 확률 변수.
+어떤 순간에도 관측치 간에 의존성이 없습니다.
+결합 분포 함수는 다음과 같습니다.
 $$
 \Pr[Y_1\leqslant y_1, \dots, Y_n\leqslant y_n] = \Pr[Y_1\leqslant y_1]\dots \Pr[Y_n\leqslant y_n].
 $$
-and the forecast is 0 (zero).
-* **binary process** is a case of i.i.d. process with $0 < p < 1$, and
+그리고 예측은 0입니다.
+* **이진 과정**은 $0 < p < 1$인 i.i.d. 과정의 경우이며, 다음과 같습니다.
 $$
 \begin{split}
 \Pr[X_t=1]& = p, \\
 \Pr[X_t=-1]& = 1-p.
 \end{split}
 $$
-* **random walk** is a cumulative sum of i.i.d. noise:
+* **랜덤 워크**는 i.i.d. 잡음의 누적 합입니다.
 $$
 S_t=X_1+X_2+\dots +X_t = \sum_{i=1}^t X_i,
 $$
-where $t=1,2,\dots$, and $X_t$ is i.i.d. noise.
-* **white noise** (WN) is a sequence of uncorrelated random variables, each with zero mean and finite variance $\sigma^2$. 
-An i.i.d.(0,$\sigma^2$) series is also WN(0,$\sigma^2$), but not conversely.
+여기서 $t=1,2,\dots$이고 $X_t$는 i.i.d. 잡음입니다.
+* **백색 잡음**(WN)은 각각 평균이 0이고 유한 분산 $\sigma^2$를 갖는 비상관 확률 변수의 시퀀스입니다.
+i.i.d.(0,$\sigma^2$) 계열은 WN(0,$\sigma^2$)이기도 하지만 그 반대는 아닙니다.
 
 
-## Autocorrelation function
+## 자기 상관 함수
 
-It is time to give more formal definitions of stationarity. 
-Loosely speaking, a time series $X_t$ ($t=0,\pm 1, \dots$) is stationary if it has statistical properties similar to those of the time-shifted series $X_{t+h}$ for each integer $h$.
+이제 정상성의 보다 공식적인 정의를 내릴 때입니다.
+대략적으로 말하면 시계열 $X_t$($t=0,\pm 1, \dots$)는 각 정수 $h$에 대해 시간 이동된 계열 $X_{t+h}$와 유사한 통계적 속성을 갖는 경우 정상입니다.
 
-Let $X_t$ be a time series with $\mathrm{E}(X^2_t)<\infty$, then the *mean function* of $X_t$ is
+$X_t$를 $\mathrm{E}(X^2_t)<\infty$인 시계열이라고 하면 $X_t$의 *평균 함수*는 다음과 같습니다.
 $$
 \mu_X(t)=\mathrm{E}(X_t).
 $$
 
-The *autocovariance function* of $X_t$ is
+$X_t$의 *자기 공분산 함수*는 다음과 같습니다.
 $$
 \gamma_X(r,s) = \mathrm{cov}(X_r,X_s) = \mathrm{E}[(X_r-\mu_X(r))(X_s-\mu_X(s))]
 $${#eq-Cov}
-for all integers $r$ and $s$.
+모든 정수 $r$과 $s$에 대해.
 
-**Weak stationarity**
+**약한 정상성**
 
-$X_t$ is (weakly) stationary if $\mu_X(t)$ is independent of $t$, and $\gamma_X(t+h,t)$ is independent of $t$ for each $h$ (consider only the first two moments):
+$X_t$는 $\mu_X(t)$가 $t$에 독립적이고 각 $h$에 대해 $\gamma_X(t+h,t)$가 $t$에 독립적인 경우 (약하게) 정상입니다(처음 두 모멘트만 고려).
 $$
 \begin{split}
 \mathrm{E}(X_t) &= \mu, \\
@@ -284,127 +284,127 @@ $$
 \end{split}
 $${#eq-weakstat}
 
-**Strong stationarity**
+**강한 정상성**
 
-$X_t$ is strictly stationary if ($X_1, \dots, X_n$) and ($X_{1+h}, \dots, X_{n+h}$) have the same joint distribution (consider all moments).
+$X_t$는 ($X_1, \dots, X_n$)과 ($X_{1+h}, \dots, X_{n+h}$)가 동일한 결합 분포를 갖는 경우 엄격하게 정상입니다(모든 모멘트 고려).
 
-Strictly stationary $X_t$ with finite variance $\mathrm{E}(X_t^2) <\infty$ for all $t$ is also weakly stationary.
+유한 분산 $\mathrm{E}(X_t^2) <\infty$를 갖는 엄격하게 정상인 $X_t$는 모든 $t$에 대해 약하게 정상이기도 합니다.
 
-If $X_t$ is a Gaussian process, then strict and weak stationarity are equivalent (i.e., one form of stationarity implies the other).
+$X_t$가 가우스 과정인 경우 엄격한 정상성과 약한 정상성은 동일합니다(즉, 한 형태의 정상성은 다른 형태를 의미함).
 
 ::: {.callout-note}
-In applications, it is usually very difficult if not impossible to verify strict stationarity. 
-So in the vast majority of cases, we are satisfied with the weak stationarity. 
-Moreover, we usually omit the word 'weak' and simply talk about stationarity (but have the weak stationary in mind).
+응용 분야에서는 엄격한 정상성을 확인하는 것이 불가능하지는 않더라도 매우 어려운 경우가 많습니다.
+따라서 대부분의 경우 약한 정상성에 만족합니다.
+또한 일반적으로 '약한'이라는 단어를 생략하고 단순히 정상성에 대해 이야기합니다(그러나 약한 정상성을 염두에 둡니다).
 :::
 
-Given the second condition of weak stationarity in @eq-weakstat, we can write *for stationary(!)* time series the *autocovariance function* (ACVF) for the lag $h$:
+@eq-weakstat에서 약한 정상성의 두 번째 조건을 고려하면 *정상(!) 시계열*에 대해 시차 $h$에 대한 *자기 공분산 함수*(ACVF)를 다음과 같이 쓸 수 있습니다.
 $$
 \gamma_X(h)= \gamma_X(t+h,t) = \mathrm{cov}(X_{t+h},X_t)
 $$
-and the *autocorrelation function* (ACF), which is the normalized autocovariance:
+그리고 정규화된 자기 공분산인 *자기 상관 함수*(ACF)는 다음과 같습니다.
 $$
 \rho_X(h)=\frac{\gamma_X(h)}{\gamma_X(0)}=\mathrm{cor}(X_{t+h},X_t).
 $$
 
-The *sample autocovariance function* is defined as:
+*표본 자기 공분산 함수*는 다음과 같이 정의됩니다.
 $$
 \hat{\gamma}_X(h)= n^{-1}\sum_{t=1}^{n-k}(x_{t+h}- \bar{x})(x_t - \bar{x}),
 $$
-with $\hat{\gamma}_X(h) = \hat{\gamma}_X(-h)$ for $h = 0,1,\dots, n-1$. 
-In R, use `acf(X, type = "covariance")`.
+$h = 0,1,\dots, n-1$에 대해 $\hat{\gamma}_X(h) = \hat{\gamma}_X(-h)$입니다.
+R에서는 `acf(X, type = "covariance")`를 사용합니다.
 
-The *sample autocorrelation function* is defined as (in R, use `acf(X)`):
+*표본 자기 상관 함수*는 다음과 같이 정의됩니다(R에서는 `acf(X)` 사용).
 $$
 \hat{\rho}_X(h)=\frac{\hat{\gamma}_X(h)}{\hat{\gamma}_X(0)}.
 $$
 
 
-### Properties of autocovariance and autocorrelation functions
+### 자기 공분산 및 자기 상관 함수의 속성
 
-1. Linearity: if $\mathrm{E}(X^2) < \infty$, $\mathrm{E}(Y^2) < \infty$, $\mathrm{E}(Z^2) < \infty$ and $a$, $b$, and $c$ are any real constants, then
+1. 선형성: $\mathrm{E}(X^2) < \infty$, $\mathrm{E}(Y^2) < \infty$, $\mathrm{E}(Z^2) < \infty$이고 $a$, $b$, $c$가 임의의 실수 상수이면 다음과 같습니다.
 $$
 \mathrm{cov}(aX + bY + c, Z) = a\mathrm{cov}(X,Z) + b\mathrm{cov}(Y,Z).
 $$
 1. $\gamma(0) \geqslant 0$.
-1. $|\gamma(h)| \leqslant \gamma(0)$ for all $h$.
-1. $\gamma(\cdot)$ is even: $\gamma(h) = \gamma(-h)$ for all $h$.
-1. $\gamma(\cdot)$ is nonnegative definite:
+1. 모든 $h$에 대해 $|\gamma(h)| \leqslant \gamma(0)$입니다.
+1. $\gamma(\cdot)$는 짝수입니다. 모든 $h$에 대해 $\gamma(h) = \gamma(-h)$입니다.
+1. $\gamma(\cdot)$는 비음 정부호입니다.
 $$
 \sum_{i,j=1}^na_i \gamma(i-j)a_j\geqslant 0,
 $$
-for all positive integers $n$ and vectors $\boldsymbol{a} = (a_1, \dots, a_n)^{\top}$ with real-valued elements $a_i$.
-1. The autocorrelation function $\rho(\cdot)$ has all the properties of autocovariance function plus $\rho(0)=1$.
-1. For i.i.d. noise with finite variance, the sample autocorrelations $\hat{\rho}(h)$, $h>0$, are approximately $N(0,1/n)$ for large sample size $n$. 
-Hence, approximately 95% of the sample autocorrelations should fall between the bounds $\pm1.96/\sqrt{n}$ (1.96 is the 0.975th quantile of the standard normal distribution) -- this is the bound automatically drawn by the R function `acf()`.
-Autocorrelations that reach outside this bound are then statistically significant.
-Note that in R as a rule of thumb the *default maximal lag* is $10 \log_{10}(n)$, and the same $n$ is used for the confidence bounds at all lags (however, in reality, samples of different sizes are used for each lag).
+모든 양의 정수 $n$과 실수 값 요소 $a_i$를 갖는 벡터 $\boldsymbol{a} = (a_1, \dots, a_n)^{\top}$에 대해.
+1. 자기 상관 함수 $\rho(\cdot)$는 자기 공분산 함수의 모든 속성과 $\rho(0)=1$을 갖습니다.
+1. 유한 분산을 갖는 i.i.d. 잡음의 경우 표본 자기 상관 $\hat{\rho}(h)$, $h>0$은 큰 표본 크기 $n$에 대해 근사적으로 $N(0,1/n)$입니다.
+따라서 표본 자기 상관의 약 95%는 경계 $\pm1.96/\sqrt{n}$ 사이에 있어야 합니다(1.96은 표준 정규 분포의 0.975번째 분위수임). 이는 R 함수 `acf()`에 의해 자동으로 그려지는 경계입니다.
+이 경계를 벗어나는 자기 상관은 통계적으로 유의합니다.
+R에서는 경험 법칙으로 *기본 최대 시차*가 $10 \log_{10}(n)$이고 모든 시차에서 신뢰 구간에 동일한 $n$이 사용됩니다(그러나 실제로는 각 시차에 대해 다른 크기의 표본이 사용됨).
 
 ::: {.callout-note}
-The last property is yet another tool for testing autocorrelation in a time series, in addition to those listed in @sec-regression.
-Also, see the Ljung--Box test described below.
+마지막 속성은 @sec-regression에 나열된 것 외에 시계열의 자기 상관을 검정하는 또 다른 도구입니다.
+또한 아래에 설명된 융-박스 검정을 참조하십시오.
 :::
 
-**Ljung--Box test**
+**융-박스 검정**
 
-Instead of testing autocorrelation at each lag, we can apply an overall test by @Ljung:Box:1978:
+각 시차에서 자기 상관을 검정하는 대신 @Ljung:Box:1978에 의해 전체 검정을 적용할 수 있습니다.
 
-$H_0$: $\rho(1) = \rho(2) = \dots = \rho(h) = 0$  
-$H_1$: $\rho(j) \neq 0$ for some $j \in \{1, 2, \dots, h\}$, where $n > h$.
+$H_0$: $\rho(1) = \rho(2) = \dots = \rho(h) = 0$
+$H_1$: $n > h$인 경우 일부 $j \in \{1, 2, \dots, h\}$에 대해 $\rho(j) \neq 0$입니다.
 
-The Ljung--Box test statistic is given by
+융-박스 검정 통계량은 다음과 같습니다.
 $$
 Q_h = n(n + 2) \sum_{j = 1}^h\frac{\hat{\rho}_j^2}{n - j}.
 $$
-Under the null hypothesis, $Q_h$ has a $\chi^2$ distribution with $h$ degrees of freedom.
-In R, this test is implemented in the function `Box.test()` with the argument `type = "Ljung-Box"` and in the function `tsdiag()`.
+귀무 가설 하에서 $Q_h$는 자유도가 $h$인 $\chi^2$ 분포를 따릅니다.
+R에서 이 검정은 인수 `type = "Ljung-Box"`를 사용하는 함수 `Box.test()`와 함수 `tsdiag()`에 구현되어 있습니다.
 
 ::: {.callout-note icon=false}
 
-## Example: Compare ACFs of time series with and without a strong trend
+## 예시: 강한 추세가 있는 시계열과 없는 시계열의 ACF 비교
 
-The time series plot of births in @fig-birthsACF shows a trend. 
-The time series is not stationary. 
-Thus, the calculated ACF is mostly useless (it is calculated under the assumption of stationarity), but we notice some periodicity in the ACF -- it is a sign of periodicity in the time series itself (seasonality). 
-Need to remove the trend (and seasonality) and repeat the ACF analysis.
+@fig-birthsACF의 출생 시계열 그림은 추세를 보여줍니다.
+시계열은 정상이 아닙니다.
+따라서 계산된 ACF는 대부분 쓸모가 없습니다(정상성 가정 하에 계산됨). 그러나 ACF에서 약간의 주기성을 알 수 있습니다. 이는 시계열 자체의 주기성(계절성)의 징후입니다.
+추세(및 계절성)를 제거하고 ACF 분석을 반복해야 합니다.
 
-Compare with the plots for accidental deaths in @fig-accdeathsACF.
+@fig-accdeathsACF의 사고 사망자 그림과 비교하십시오.
 
 ```{r}
 #| label: fig-birthsACF
-#| fig-cap: "Time series plot and sample ACF of the monthly number of births in New York City, 1946--1959."
+#| fig-cap: "뉴욕시 월별 출생아 수 시계열 그림 및 표본 ACF, 1946-1959년."
 
 p1 <- ggplot2::autoplot(births) + 
     xlab("") +
-    ylab("Number of births (thousands)")
+    ylab("출생아 수 (천 명)")
 p2 <- forecast::ggAcf(births) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
 ```{r}
 #| label: fig-accdeathsACF
-#| fig-cap: "Time series plot and sample ACF of monthly totals of accidental deaths in the USA, 1973--1978."
+#| fig-cap: "미국 월별 사고 사망자 총계 시계열 그림 및 표본 ACF, 1973-1978년."
 
 p1 <- ggplot2::autoplot(MASS::accdeaths) + 
     xlab("") +
-    ylab("Number of accidental deaths")
+    ylab("사고 사망자 수")
 p2 <- forecast::ggAcf(MASS::accdeaths) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 
-@fig-accdeathsACF shows a slight trend of declining, then increasing deaths; the seasonal component in this time series is more dominant.
-The seasonal cycle of 12 months is clearly visible in the ACF.
+@fig-accdeathsACF는 사망자가 감소했다가 증가하는 약간의 추세를 보여줍니다. 이 시계열의 계절적 구성 요소가 더 우세합니다.
+12개월의 계절 주기는 ACF에서 명확하게 보입니다.
 :::
 
 ::: {.callout-note}
-In base-R plots, the lags in ACF plots are measured in the number of periods. 
-The period information (or frequency, i.e., the number of observations per period) is saved in the format `ts` in R:
+기본 R 그림에서 ACF 그림의 시차는 기간 수로 측정됩니다.
+기간 정보(또는 빈도, 즉 기간당 관측치 수)는 R의 `ts` 형식으로 저장됩니다.
 
 ```{r}
 #| code-fold: false
@@ -413,61 +413,61 @@ is.ts(births)
 frequency(births)
 ```
 
-We don't have to convert data to this format. 
-If we plot the ACF of just a vector without these attributes, the values are the same, just the labels on the horizontal axis are different (@fig-ACFs). 
-For monthly data, as in the example here, the frequency is 12. 
-Hence, here the ACF at lag 0.5 (@fig-ACFs A) means autocorrelation with the lag $h=6$ months (@fig-ACFs B); lag 1 (@fig-ACFs A) corresponds to one whole period of $h=12$ months (@fig-ACFs B), and so on.
+데이터를 이 형식으로 변환할 필요는 없습니다.
+이러한 속성이 없는 벡터의 ACF를 그리면 값은 동일하지만 가로축의 레이블만 다릅니다(@fig-ACFs).
+여기 예제와 같이 월별 데이터의 경우 빈도는 12입니다.
+따라서 여기서 시차 0.5(@fig-ACFs A)에서의 ACF는 시차 $h=6$개월(@fig-ACFs B)과의 자기 상관을 의미합니다. 시차 1(@fig-ACFs A)은 $h=12$개월(@fig-ACFs B)의 전체 기간에 해당하며 계속됩니다.
 
 ```{r}
 #| label: fig-ACFs
-#| fig-cap: "In base-R graphics, the x-axis labels in ACF plots differ depending on the input format."
+#| fig-cap: "기본 R 그래픽에서 ACF 그림의 x축 레이블은 입력 형식에 따라 다릅니다."
 
 par(mar = c(4, 4, 3, 1) + 0.1, mfrow = c(1, 2))
 
-acf(births, lag.max = 37, las = 1, main = "A) Input is a ts object")
-acf(as.numeric(births), lag.max = 37, las = 1, main = "B) Input is a numeric vector")
+acf(births, lag.max = 37, las = 1, main = "A) 입력은 ts 객체입니다.")
+acf(as.numeric(births), lag.max = 37, las = 1, main = "B) 입력은 숫자 벡터입니다.")
 ```
 :::
 
 ::: {.callout-note}
-The `ts` objects in R cannot incorporate varying periods (e.g., different numbers of days or weeks because of leap years), therefore, we recommend using this format only for monthly or annual data. 
-Setting `frequency = 365.25` for daily data could be an option (although not very accurate) to accommodate leap years.
+R의 `ts` 객체는 다양한 기간(예: 윤년으로 인한 다른 일수 또는 주 수)을 통합할 수 없으므로 월별 또는 연간 데이터에만 이 형식을 사용하는 것이 좋습니다.
+일일 데이터에 대해 `frequency = 365.25`를 설정하는 것은 윤년을 수용하기 위한 옵션이 될 수 있습니다(매우 정확하지는 않지만).
 
-Converting to the `ts` format usually is not required for analysis. 
-Most of the time we use plain numeric vectors and data frames in R.
+분석을 위해 `ts` 형식으로 변환하는 것은 일반적으로 필요하지 않습니다.
+대부분의 경우 R에서 일반 숫자 벡터와 데이터 프레임을 사용합니다.
 
-Contributed R packages offer additional formats for time series, e.g., see the packages `xts` and `zoo`.
+기여된 R 패키지는 시계열에 대한 추가 형식을 제공합니다(예: 패키지 `xts` 및 `zoo` 참조).
 :::
 
-ACF measures the correlation between $X_t$ and $X_{t+h}$.
-The correlation can be due to a direct connection or through the intermediate steps $X_{t+1}, X_{t+2}, \dots, X_{t+h-1}$.
-Partial ACF looks at the correlation between $X_t$ and $X_{t+h}$ once the effect of intermediate steps is removed.
+ACF는 $X_t$와 $X_{t+h}$ 사이의 상관 관계를 측정합니다.
+상관 관계는 직접적인 연결 또는 중간 단계 $X_{t+1}, X_{t+2}, \dots, X_{t+h-1}$을 통해 발생할 수 있습니다.
+부분 ACF는 중간 단계의 효과가 제거된 후 $X_t$와 $X_{t+h}$ 사이의 상관 관계를 살펴봅니다.
 
 
-## Partial autocorrelation function
+## 부분 자기 상관 함수
 
-@Shumway:Stoffer:2011 and @Shumway:Stoffer:2014 provide the following explanation of the concept.
+@Shumway:Stoffer:2011 및 @Shumway:Stoffer:2014는 개념에 대해 다음과 같은 설명을 제공합니다.
 
-Recall that if $X$, $Y$, and $Z$ are random variables, then the partial correlation between $X$ and $Y$ given $Z$ is obtained by regressing $X$ on $Z$ to obtain $\hat{X}$, regressing $Y$ on $Z$ to obtain $\hat{Y}$, and then calculating
+$X$, $Y$, $Z$가 확률 변수인 경우 $Z$가 주어졌을 때 $X$와 $Y$ 사이의 부분 상관 관계는 $X$를 $Z$에 회귀하여 $\hat{X}$를 얻고, $Y$를 $Z$에 회귀하여 $\hat{Y}$를 얻은 다음 다음을 계산하여 얻습니다.
 $$
 \rho_{XY|Z} = \mathrm{cor}(X - \hat{X}, Y - \hat{Y}).
 $$
-The idea is that $\rho_{XY|Z}$ measures the correlation between $X$ and $Y$ with the linear effect of $Z$ removed (or partialled out). 
-If the variables are multivariate normal, then this definition coincides with $\rho_{XY|Z} = \mathrm{cor}(X,Y | Z)$.
+아이디어는 $\rho_{XY|Z}$가 $Z$의 선형 효과가 제거된(또는 부분화된) $X$와 $Y$ 사이의 상관 관계를 측정한다는 것입니다.
+변수가 다변량 정규 분포인 경우 이 정의는 $\rho_{XY|Z} = \mathrm{cor}(X,Y | Z)$와 일치합니다.
 
-The partial autocorrelation function (PACF) of a stationary process, $X_t$, denoted $\rho_{hh}$, for $h = 1,2,\dots$, is
+정상 과정 $X_t$의 부분 자기 상관 함수(PACF)는 $h = 1,2,\dots$에 대해 $\rho_{hh}$로 표시되며 다음과 같습니다.
 $$
 \rho_{11} = \mathrm{cor}(X_t, X_{t+1}) = \rho(1)
 $$
-and
+그리고
 $$
 \rho_{hh} = \mathrm{cor}(X_t - \hat{X}_t, X_{t+h} - \hat{X}_{t+h}), \; h\geqslant 2.
 $$
 
-Both $(X_t - \hat{X}_t)$ and $(X_{t+h} - \hat{X}_{t+h})$ are uncorrelated with $\{ X_{t+1}, \dots, X_{t+h-1}\}$. 
-The PACF, $\rho_{hh}$, is the correlation between $X_{t+h}$ and $X_t$ with the linear dependence of everything between them (intermediate lags), namely $\{ X_{t+1}, \dots, X_{t+h-1}\}$, on each, removed.
+$(X_t - \hat{X}_t)$와 $(X_{t+h} - \hat{X}_{t+h})$ 모두 $\{ X_{t+1}, \dots, X_{t+h-1}\}$와 비상관입니다.
+PACF $\rho_{hh}$는 $X_{t+h}$와 $X_t$ 사이의 상관 관계로, 그들 사이의 모든 것(중간 시차), 즉 $\{ X_{t+1}, \dots, X_{t+h-1}\}$의 선형 의존성이 각각에서 제거된 것입니다.
 
-In other notations, the PACF for the lag $h$ and predictions $P$ is
+다른 표기법에서 시차 $h$와 예측 $P$에 대한 PACF는 다음과 같습니다.
 $$
 \rho_{hh} =
 \begin{cases}
@@ -478,53 +478,53 @@ $$
 \end{cases}
 $$
 
-To obtain sample estimates of PACF in R, use `pacf(X)` or `acf(X, type = "partial")`.
+R에서 PACF의 표본 추정치를 얻으려면 `pacf(X)` 또는 `acf(X, type = "partial")`를 사용합니다.
 
-Correlation and partial correlation coefficients measure the strength and direction of the relationship, changing within $[-1, 1]$. 
-The percent of explained variance for the case of two variables is measured by squared correlation (r-squared; $R^2$; coefficient of determination) changing within $[0, 1]$, so a correlation of 0.2 means only 4% of variance explained by the simple linear relationship (regression). 
-To report a partial correlation, for example, of 0.2 at lag 3, one could say something like 
-'*The partial autocorrelation at lag 3 (after removing the influence of the intermediate lags 1 and 2) is 0.2*' 
-(depending on the application, the correlation of 0.2 can be considered weak or moderate strength) or
-'*After accounting for autocorrelation at intermediate lags 1 and 2, the linear relationship at lag 3 can explain 4% of the remaining variability.*'
+상관 계수와 부분 상관 계수는 관계의 강도와 방향을 측정하며 $[-1, 1]$ 내에서 변경됩니다.
+두 변수의 경우 설명된 분산의 백분율은 제곱 상관 관계(r-제곱, $R^2$, 결정 계수)로 측정되며 $[0, 1]$ 내에서 변경되므로 상관 관계 0.2는 단순 선형 관계(회귀)로 설명되는 분산이 4%에 불과함을 의미합니다.
+예를 들어 시차 3에서 0.2의 부분 상관 관계를 보고하려면 다음과 같이 말할 수 있습니다.
+'*시차 3에서의 부분 자기 상관(중간 시차 1과 2의 영향을 제거한 후)은 0.2입니다*'
+(응용 분야에 따라 0.2의 상관 관계는 약하거나 중간 정도의 강도로 간주될 수 있음) 또는
+'*중간 시차 1과 2에서의 자기 상관을 고려한 후 시차 3에서의 선형 관계는 나머지 변동성의 4%를 설명할 수 있습니다.*'
 
-The partial autocorrelation coefficients of i.i.d. time series are asymptotically distributed as $N(0,1/n)$. 
-Hence, for lags $h > p$, where $p$ is the optimal or true order of the partial autocorrelation, $\rho_{hh} < 1.96/\sqrt{n}$ (assuming the confidence level 95%). 
-This suggests using as a preliminary estimator of the order $p$ the smallest value $m$ such that $\rho_{hh} < 1.96/\sqrt{n}$ for $h > m$.
+i.i.d. 시계열의 부분 자기 상관 계수는 점근적으로 $N(0,1/n)$으로 분포합니다.
+따라서 부분 자기 상관의 최적 또는 실제 차수인 $p$보다 큰 시차 $h$에 대해 $\rho_{hh} < 1.96/\sqrt{n}$입니다(신뢰 수준 95% 가정).
+이는 $h > m$에 대해 $\rho_{hh} < 1.96/\sqrt{n}$인 가장 작은 값 $m$을 차수 $p$의 예비 추정량으로 사용하는 것을 제안합니다.
 
 ::: {.callout-note icon=false}
 
-## Example: ACF and PACF of accdeaths
+## 예시: accdeaths의 ACF 및 PACF
 
-By plotting ACF and PACF (@fig-accdeathsPACF), we observe that most of the temporal dependence (autocorrelation) in this time series is due to correlation with the immediately preceding values (see PACF at lag 1). 
+ACF와 PACF를 그려보면(@fig-accdeathsPACF), 이 시계열의 시간적 의존성(자기 상관) 대부분이 바로 이전 값과의 상관 관계 때문임을 알 수 있습니다(시차 1에서의 PACF 참조).
 
 ```{r}
 #| label: fig-accdeathsPACF
-#| fig-cap: "ACF and PACF plots of the monthly accidental deaths."
+#| fig-cap: "월별 사고 사망자 수의 ACF 및 PACF 그림."
 
 p1 <- forecast::ggAcf(MASS::accdeaths) + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p2 <- forecast::ggAcf(MASS::accdeaths, type = "partial") + 
     ggtitle("") +
-    xlab("Lag (months)")
+    xlab("시차 (월)")
 p1 + p2 +
     plot_annotation(tag_levels = 'A')
 ```
 :::
 
 
-## Conclusion
+## 결론
 
-We have defined components of the time series including trend, periodic component, and unexplained variability (errors, residuals). 
-Our goal will be to model trends and periodicity, extract them from the time series, then extract as much information as possible from the remainder, so the ultimate residuals become white noise.
+추세, 주기적 구성 요소 및 설명되지 않은 변동성(오차, 잔차)을 포함한 시계열의 구성 요소를 정의했습니다.
+우리의 목표는 추세와 주기성을 모델링하고 시계열에서 추출한 다음 나머지에서 가능한 한 많은 정보를 추출하여 궁극적인 잔차가 백색 잡음이 되도록 하는 것입니다.
 
-White noise is a sequence of uncorrelated random variables with zero mean and finite variance. 
-White noise is also an example of a weakly stationary time series. 
-The i.i.d. noise is strictly stationary (all moments of the distribution stay identical through time), and i.i.d. noise with finite variance is also white noise.
+백색 잡음은 평균이 0이고 유한 분산을 갖는 비상관 확률 변수의 시퀀스입니다.
+백색 잡음은 또한 약하게 정상인 시계열의 예입니다.
+i.i.d. 잡음은 엄격하게 정상이며(분포의 모든 모멘트가 시간에 따라 동일하게 유지됨), 유한 분산을 갖는 i.i.d. 잡음은 백색 잡음이기도 합니다.
 
-Time-series dependence can be quantified using a (partial) autocorrelation function. 
-We defined (P)ACF for stationary series; R functions also assume stationarity of the time series when calculating ACF or PACF.
+시계열 의존성은 (부분) 자기 상관 함수를 사용하여 정량화할 수 있습니다.
+정상 계열에 대해 (P)ACF를 정의했습니다. R 함수는 ACF 또는 PACF를 계산할 때 시계열의 정상성을 가정합니다.
 
-After developing several models for modeling and forecasting time series, we can compare them quantitatively in cross-validation. 
-For time series, it is typical to have the testing set (or a validation fold) to be after the training set. 
-Models can be compared based on the accuracy of their point forecasts and interval forecasts.
+시계열 모델링 및 예측을 위한 여러 모델을 개발한 후 교차 검증에서 정량적으로 비교할 수 있습니다.
+시계열의 경우 일반적으로 테스트 세트(또는 검증 폴드)가 훈련 세트 뒤에 옵니다.
+모형은 점 예측 및 구간 예측의 정확도를 기준으로 비교할 수 있습니다.
