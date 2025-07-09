@@ -1,6 +1,5 @@
 project:
     type: book
-    output-dir: docs
 
 book:
     title: Time Series Analysis
@@ -21,27 +20,27 @@ book:
         search: true
     chapters:
         - index.qmd
-        # - l01_regression.qmd
-        # - l02_tsintro.qmd
-        # - l03_smoothing.qmd
-        # - l04_arma.qmd
-        # - l05_arima.qmd
-        # - l06_garch.qmd
-        # - l07_trendtest.qmd
-        # - l08_tsreg1.qmd
-        # - l09_tsreg2.qmd
-        # - l10_causality.qmd
-        # - l11_panel.qmd
-        # - l12_forecast.qmd
-        # - l13_spectral.qmd
+        #- l01_regression.qmd
+        #- l02_tsintro.qmd
+        #- l03_smoothing.qmd
+        #- l04_arma.qmd
+        #- l05_arima.qmd
+        #- l06_garch.qmd
+        #- l07_trendtest.qmd
+        #- l08_tsreg1.qmd
+        #- l09_tsreg2.qmd
+        #- l10_causality.qmd
+        #- l11_panel.qmd
+        #- l12_forecast.qmd
+        #- l13_spectral.qmd
         - software.qmd
         - references.qmd
     appendices:
-        # - s1_wls.qmd
-        # - s2_gls.qmd
-        # - s4_trendsync.qmd
-        - s6_extremes.qmd
-        # - s_practice.qmd
+        #- s1_wls.qmd
+        #- s2_gls.qmd
+        #- s4_trendsync.qmd
+        #- s6_extremes.qmd
+        - s_practice.qmd
 
 bibliography:
     - references.bib
@@ -51,22 +50,30 @@ csl: springerbasicVL.csl
 appendix-style: default
 
 format:
-    html:
-        code-fold: true
-        code-link: true
-        theme: cosmo
+    pdf:
+        documentclass: report
+        papersize: a4
+        toc: true
+        toc-depth: 2
+        number-sections: true
+        colorlinks: true
+        prefer-html: true
+        fig_caption: true
         fig-width: 8
         fig-height: 5
 
-engine: knitr
-knitr:
-    opts_chunk:
-        collapse: false
-        message: false
-        warning: false
-        comment: "#>"
-        R.options:
-            knitr.graphics.auto_pdf: true
+# engine: knitr
+# knitr:
+#     opts_chunk:
+#         collapse: false
+#         message: false
+#         warning: false
+#         comment: "#>"
+#         R.options:
+#             knitr.graphics.auto_pdf: true
 execute:
-    eval: true
-    echo: true
+    eval: false
+    echo: false
+        
+mainfont: "Noto Serif CJK KR"
+sansfont: "Noto Sans CJK KR"

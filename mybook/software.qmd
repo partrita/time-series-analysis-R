@@ -1,7 +1,6 @@
 ---
-output: html_document
-editor_options: 
-    chunk_output_type: console
+
+
 ---
 
 # Software {.unnumbered}
@@ -38,7 +37,7 @@ The R packages used in this book include (in alphabetic order):
 
 ```{r}
 #| echo: false
-
+options(repos = c(CRAN = "https://cran.snu.ac.kr/"))
 packages2cite <- sort(c(
     'astsa'
     # 'car'
