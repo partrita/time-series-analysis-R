@@ -10,8 +10,8 @@ book:
     date-format: iso
     favicon: TSAfav.png
     cover-image: TSAcov.png
-    repo-url: https://github.com/vlyubchich/tsar/
-    repo-branch: master
+    repo-url: https://github.com/partrinta/time-series-analysis-R/
+    repo-branch: main
     repo-actions: [edit, issue]
   # downloads: [pdf, epub]
   # sharing: [twitter, facebook]
